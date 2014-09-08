@@ -139,7 +139,7 @@ namespace swift
             {
                 in.pointlist[2*i + 0] = (vp.at(points[i])).projx(normal, p0);
                 in.pointlist[2*i + 1] = (vp.at(points[i])).projy(normal, p0);
-                std::cout << i << " : " << in.pointlist[2*i + 0] << "  " << in.pointlist[2*i + 1] << "\n";
+                //std::cout << i << " : " << in.pointlist[2*i + 0] << "  " << in.pointlist[2*i + 1] << "\n";
             }
 
             in.numberofsegments = in.numberofpoints;
@@ -147,10 +147,10 @@ namespace swift
             std::vector<int> temp_vec;
             add_segments_from_edges(temp_vec, ve);
             std::copy(temp_vec.begin(), temp_vec.end(),in.segmentlist);
-            for (int i = 0; i < in.numberofsegments; i++)
-            {
-                std::cout << i << " : " << in.segmentlist[2*i + 0] << "  " << in.segmentlist[2*i + 1] << "\n";
-            }
+            //for (int i = 0; i < in.numberofsegments; i++)
+            //{
+            //    std::cout << i << " : " << in.segmentlist[2*i + 0] << "  " << in.segmentlist[2*i + 1] << "\n";
+            //}
             in.numberofholes = 0;
             in.numberofregions = 0;
             in.holelist = (REAL *) NULL;
@@ -171,7 +171,7 @@ namespace swift
             if (f == 0)
             {
                 std::stringstream ss;
-                ss << "pzqYa" << av_step * av_step / 2;
+                ss << "pzqQYa" << av_step * av_step / 2;
                 std::string str;
                 ss >> str;
                 char * s = new char[str.size() + 1];
@@ -193,7 +193,7 @@ namespace swift
                 mid.edgelist = (int *) NULL;
                 mid.edgemarkerlist = (int *) NULL;
                 std::stringstream ss;
-                ss << "pzqYa" << av_step * av_step / 2;
+                ss << "pzqQYa" << av_step * av_step / 2;
                 std::string str;
                 ss >> str;
                 char * s = new char[str.size() + 1];

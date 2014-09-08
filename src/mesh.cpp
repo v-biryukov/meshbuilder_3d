@@ -234,8 +234,8 @@ namespace swift
             set_facet(i, boundaries.at(i));
         for (unsigned int i = 0; i<contacts.size(); i++)
         {
-            set_facet(boundaries.size() + 2*i, contacts.at(i).faces[0], i + 1/*i + 1, 2*/);
-            set_facet(boundaries.size() + 2*i + 1, contacts.at(i).faces[1], i + 1/*i + 1, 2*/);
+            set_facet(boundaries.size() + 2*i, contacts.at(i).faces[0], 2/*i + 1, 2*/);
+            set_facet(boundaries.size() + 2*i + 1, contacts.at(i).faces[1], 2/*i + 1, 2*/);
         }
     }
 
@@ -305,8 +305,8 @@ namespace swift
         char * tempparam = new char[tetraparam.size() + 1];
         std::copy(tetraparam.begin(), tetraparam.end(), tempparam);
         tempparam[tetraparam.size()] = '\0';
-        in.save_nodes((char*)"in2");
-        in.save_poly((char*)"in2");
+        //in.save_nodes((char*)"in2");
+        //in.save_poly((char*)"in2");
         // Main calculations
         if (!use_volume_constraints)
         {
@@ -334,8 +334,8 @@ namespace swift
 
     void mesh::save(char* filename)
     {
-		in.save_nodes((char*)"in");
-        in.save_poly((char*)"in");
+		//in.save_nodes((char*)"in");
+        //in.save_poly((char*)"in");
         out.save_nodes(filename);
         out.save_elements(filename);
         out.save_faces(filename);
@@ -652,7 +652,6 @@ namespace swift
 
 void process(swift::mesh m)
 {
-    m.save((char*)"out");
     m.build();
     m.save((char*)"out");
     m.split_and_save();

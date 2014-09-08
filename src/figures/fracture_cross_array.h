@@ -236,6 +236,9 @@ namespace swift
                 contacts.push_back(temp);
             }
         }
+        hole.x = sections_x[1];
+        hole.y = sections_y[1];
+        hole.z = 0;
     }
 
 
