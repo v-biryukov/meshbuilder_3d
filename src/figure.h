@@ -88,7 +88,8 @@ namespace swift
         std::vector<int> v = get_non_contact_facets();
         BOOST_FOREACH (std::vector<int> c, contacts) {
             facets.at(c.at(0)).make_triangulation(points, trifacets, edges, av_step, constraints);
-            facets.at(c.at(1)).take_triangulation(points, trifacets, edges, facets.at(c.at(0)));
+            facets.at(c.at(1)).make_triangulation(points, trifacets, edges, av_step, constraints);
+            //facets.at(c.at(1)).take_triangulation(points, trifacets, edges, facets.at(c.at(0)));
         }
         BOOST_FOREACH (int i, v)
             facets.at(i).make_triangulation(points, trifacets, edges, av_step, constraints);

@@ -106,25 +106,25 @@ namespace swift
         for(int i = 1; i <= nof_figures; i++)
         {
             string type = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_type");
-            string figpath = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_file");
+            //string figpath = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_file");
 
             if (use_volume_constraints)
             {
-                if      (type == "custom")   {figures.push_back(figure(figpath, average_step, volume_constraint));}
-                else if (type == "cube") {figures.push_back(cube(figpath, average_step, volume_constraint));}
-                else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array(figpath, average_step, volume_constraint));}
-                else if (type == "fracture") {figures.push_back(fracture(figpath, average_step, volume_constraint));}
-                else if (type == "rect_boundary") {figures.push_back(rect_boundary(figpath, average_step, volume_constraint));}
-                else if (type == "cross_fracture") {figures.push_back(cross_fracture(figpath, average_step, volume_constraint));}
+                if      (type == "custom")               {figures.push_back(figure(				  path, average_step, volume_constraint));}
+                else if (type == "cube") 				 {figures.push_back(cube(				  path, average_step, volume_constraint));}
+                else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array( path, average_step, volume_constraint));}
+                else if (type == "fracture") 			 {figures.push_back(fracture(			  path, average_step, volume_constraint));}
+                else if (type == "rect_boundary")  		 {figures.push_back(rect_boundary(  	  path, average_step, volume_constraint));}
+                else if (type == "cross_fracture") 		 {figures.push_back(cross_fracture(		  path, average_step, volume_constraint));}
             }
             else
             {
-                if      (type == "custom")   {figures.push_back(figure(figpath, average_step, 0));}
-                else if (type == "cube") {figures.push_back(cube(figpath, average_step, 0));}
-                else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array(figpath, average_step, 0));}
-                else if (type == "fracture") {figures.push_back(fracture(figpath, average_step, 0));}
-                else if (type == "rect_boundary") {figures.push_back(rect_boundary(figpath, average_step, 0));}
-                else if (type == "cross_fracture") {figures.push_back(cross_fracture(figpath, average_step, 0));}
+                if      (type == "custom")     			 {figures.push_back(figure(				  path, average_step, 0));}
+                else if (type == "cube") 				 {figures.push_back(cube(				  path, average_step, 0));}
+                else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array( path, average_step, 0));}
+                else if (type == "fracture") 			 {figures.push_back(fracture(			  path, average_step, 0));}
+                else if (type == "rect_boundary") 		 {figures.push_back(rect_boundary(		  path, average_step, 0));}
+                else if (type == "cross_fracture") 		 {figures.push_back(cross_fracture(		  path, average_step, 0));}
             }
 
             std::string s = pt.get<std::string>("Figures.figure" + lexical_cast<string>(i) + "_is_empty");
@@ -234,8 +234,8 @@ namespace swift
             set_facet(i, boundaries.at(i));
         for (unsigned int i = 0; i<contacts.size(); i++)
         {
-            set_facet(boundaries.size() + 2*i, contacts.at(i).faces[0], 2/*i + 1*/);
-            set_facet(boundaries.size() + 2*i + 1, contacts.at(i).faces[1], 2/*i + 1*/);
+            set_facet(boundaries.size() + 2*i, contacts.at(i).faces[0], i + 1/*i + 1, 2*/);
+            set_facet(boundaries.size() + 2*i + 1, contacts.at(i).faces[1], i + 1/*i + 1, 2*/);
         }
     }
 
@@ -305,7 +305,8 @@ namespace swift
         char * tempparam = new char[tetraparam.size() + 1];
         std::copy(tetraparam.begin(), tetraparam.end(), tempparam);
         tempparam[tetraparam.size()] = '\0';
-
+        in.save_nodes((char*)"in2");
+        in.save_poly((char*)"in2");
         // Main calculations
         if (!use_volume_constraints)
         {
@@ -333,7 +334,7 @@ namespace swift
 
     void mesh::save(char* filename)
     {
-        in.save_nodes((char*)"in");
+		in.save_nodes((char*)"in");
         in.save_poly((char*)"in");
         out.save_nodes(filename);
         out.save_elements(filename);
@@ -398,7 +399,7 @@ namespace swift
 	    int_t * cellIndices  = new int_t [4 * cellsCount];
         int_t * meshIds      = new int_t [cellsCount];
         CellAvgPoint *cellPoints = new CellAvgPoint[cellsCount];
-        for(int i = 0; i < cellsCount; i++)
+        for( unsigned int i = 0; i < cellsCount; i++)
         {
             meshIds[i] = 0;
 	    cellIndices[4*i+0] = int_t(out.tetrahedronlist[4*i+0]);
@@ -466,9 +467,9 @@ namespace swift
             n += main_boundary->facets.at(c.at(0)).trifacets.size();
         }
         if (contacts.size() > n || contacts.size() == 0)
-	{
-            contactFacesCount.push_back(contacts.size() - n);
-	}
+        {
+                contactFacesCount.push_back(contacts.size() - n);
+        }
 
         std::vector<int_t> boundaryFacesCount;
         boundaryFacesCount.push_back(main_boundary->facets.at(0).trifacets.size());
@@ -477,7 +478,7 @@ namespace swift
         for (int i = 0; i < 4; i++)
         {
             int_t m = 0;
-            for (int j = 0; j <= n_of_slices; j++)
+            for ( unsigned int j = 0; j <= n_of_slices; j++)
                 m += main_boundary->facets.at(2 + j + (n_of_slices+1)*i).trifacets.size();
             boundaryFacesCount.push_back(m);
             n += m;
@@ -628,7 +629,7 @@ namespace swift
             outFile.open(fileFullName.c_str(), std::ios::out);
             outFile << localCellsCount;
             outFile << " 4 0\n";
-            for(int localCellIndex = 0; localCellIndex < localCellsCount; localCellIndex++)
+            for( unsigned int localCellIndex = 0; localCellIndex < localCellsCount; localCellIndex++)
             {
                 outFile << localCellIndex << " ";
                 outFile << localCellIndicesBuf[localCellIndex * 4 + 0] << " ";
@@ -651,7 +652,7 @@ namespace swift
 
 void process(swift::mesh m)
 {
-    m.save((char*)"test");
+    m.save((char*)"out");
     m.build();
     m.save((char*)"out");
     m.split_and_save();

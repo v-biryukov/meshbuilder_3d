@@ -67,7 +67,7 @@ namespace swift
         points.push_back(point(+size/2, +size/2, -size/2));
         points.push_back(point(+size/2, +size/2, +size/2));
         facets.push_back(facet(1, 5, 7, 4));
-	facets.push_back(facet(0, 3, 6, 2));
+        facets.push_back(facet(0, 3, 6, 2));
         facets.push_back(facet(0, 1, 5, 3));
         facets.push_back(facet(0, 2, 4, 1));
         facets.push_back(facet(7, 5, 3, 6));

@@ -139,8 +139,7 @@ namespace swift
             {
                 in.pointlist[2*i + 0] = (vp.at(points[i])).projx(normal, p0);
                 in.pointlist[2*i + 1] = (vp.at(points[i])).projy(normal, p0);
-                std::cout << "" << " " << in.pointlist[2*i + 0] << ", ";
-                std::cout << "" << " " << in.pointlist[2*i + 1] << std::endl;
+                std::cout << i << " : " << in.pointlist[2*i + 0] << "  " << in.pointlist[2*i + 1] << "\n";
             }
 
             in.numberofsegments = in.numberofpoints;
@@ -148,8 +147,14 @@ namespace swift
             std::vector<int> temp_vec;
             add_segments_from_edges(temp_vec, ve);
             std::copy(temp_vec.begin(), temp_vec.end(),in.segmentlist);
+            for (int i = 0; i < in.numberofsegments; i++)
+            {
+                std::cout << i << " : " << in.segmentlist[2*i + 0] << "  " << in.segmentlist[2*i + 1] << "\n";
+            }
             in.numberofholes = 0;
             in.numberofregions = 0;
+            in.holelist = (REAL *) NULL;
+            in.regionlist = (REAL *) NULL;
 
             out.pointlist = (REAL *) NULL;
             out.pointattributelist = (REAL *) NULL;
@@ -161,6 +166,7 @@ namespace swift
             out.segmentmarkerlist = (int *) NULL;
             out.edgelist = (int *) NULL;
             out.edgemarkerlist = (int *) NULL;
+
 
             if (f == 0)
             {
