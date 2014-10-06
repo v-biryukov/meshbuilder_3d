@@ -1252,7 +1252,7 @@ bool tetgenio::load_off(char* filebasename)
   char infilename[FILENAMESIZE];
   char buffer[INPUTLINESIZE];
   char *bufferp;
-  double *coord;
+  REAL *coord;
   int nverts = 0, iverts = 0;
   int nfaces = 0, ifaces = 0;
   int nedges = 0;
@@ -1414,7 +1414,7 @@ bool tetgenio::load_ply(char* filebasename)
   char infilename[FILENAMESIZE];
   char buffer[INPUTLINESIZE];
   char *bufferp, *str;
-  double *coord;
+  REAL *coord;
   int endheader = 0, format = 0;
   int nverts = 0, iverts = 0;
   int nfaces = 0, ifaces = 0;
@@ -1634,7 +1634,7 @@ bool tetgenio::load_stl(char* filebasename)
   char infilename[FILENAMESIZE];
   char buffer[INPUTLINESIZE];
   char *bufferp, *str;
-  double *coord;
+  REAL *coord;
   int solid = 0;
   int nverts = 0, iverts = 0;
   int nfaces = 0;
@@ -1657,7 +1657,7 @@ bool tetgenio::load_stl(char* filebasename)
   printf("Opening %s.\n", infilename);
 
   // STL file has no number of points available. Use a list to read points.
-  plist = new tetgenmesh::arraypool(sizeof(double) * 3, 10); 
+  plist = new tetgenmesh::arraypool(sizeof(REAL) * 3, 10); 
 
   while ((bufferp = readline(buffer, fp, &line_count)) != NULL) {
     // The ASCII .stl file must start with the lower case keyword solid and
@@ -1708,7 +1708,7 @@ bool tetgenio::load_stl(char* filebasename)
   numberofpoints = nverts;
   pointlist = new REAL[nverts * 3];
   for (i = 0; i < nverts; i++) {
-    coord = (double *) fastlookup(plist, i);
+    coord = (REAL *) fastlookup(plist, i);
     iverts = i * 3;
     pointlist[iverts] = (REAL) coord[0];
     pointlist[iverts + 1] = (REAL) coord[1];
@@ -1760,7 +1760,7 @@ bool tetgenio::load_medit(char* filebasename, int istetmesh)
   char infilename[FILENAMESIZE];
   char buffer[INPUTLINESIZE];
   char *bufferp, *str;
-  double *coord;
+  REAL *coord;
   int *tmpfmlist;
   int dimension = 0;
   int nverts = 0;
@@ -2121,7 +2121,7 @@ bool tetgenio::load_vtk(char* filebasename)
   char line[INPUTLINESIZE];
   char mode[128], id[256], fmt[64];
   char *bufferp;
-  double *coord;
+  REAL *coord;
   float _x, _y, _z;
   int nverts = 0;
   int nfaces = 0;
@@ -2176,10 +2176,10 @@ bool tetgenio::load_vtk(char* filebasename)
       if(!strcmp(mode, "BINARY")) {
         for(i = 0; i < nverts; i++) {
           coord = &pointlist[i * 3];
-          if(!strcmp(fmt, "double")) {
-            fread((char*)(&(coord[0])), sizeof(double), 1, fp);
-            fread((char*)(&(coord[1])), sizeof(double), 1, fp);
-            fread((char*)(&(coord[2])), sizeof(double), 1, fp);
+          if(!strcmp(fmt, "REAL")) {
+            fread((char*)(&(coord[0])), sizeof(REAL), 1, fp);
+            fread((char*)(&(coord[1])), sizeof(REAL), 1, fp);
+            fread((char*)(&(coord[2])), sizeof(REAL), 1, fp);
             if(ImALittleEndian){
               swapBytes((unsigned char *) &(coord[0]), sizeof(coord[0]));
               swapBytes((unsigned char *) &(coord[1]), sizeof(coord[1]));
@@ -2194,11 +2194,11 @@ bool tetgenio::load_vtk(char* filebasename)
               swapBytes((unsigned char *) &_y, sizeof(_y));
               swapBytes((unsigned char *) &_z, sizeof(_z));
             }
-            coord[0] = double(_x);
-            coord[1] = double(_y);
-            coord[2] = double(_z);
+            coord[0] = REAL(_x);
+            coord[1] = REAL(_y);
+            coord[2] = REAL(_z);
           } else {
-            printf("Error: Only float or double formats are supported!\n");
+            printf("Error: Only float or REAL formats are supported!\n");
             return false;
           }
         }
@@ -18921,7 +18921,7 @@ int tetgenmesh::add_steinerpt_in_schoenhardtpoly(triface *abtets, int n,
   // Sample N points in edge [c,d].
   for (it = 1; it < N; it++) {
     for (i = 0; i < 3; i++) {
-      sampt[i] = pc[i] + (stepi * (double) it) * vcd[i];
+      sampt[i] = pc[i] + (stepi * (REAL) it) * vcd[i];
     }
     for (i = 0; i < cavetetlist->objects; i++) {
       parytet = (triface *) fastlookup(cavetetlist, i);
@@ -18949,7 +18949,7 @@ int tetgenmesh::add_steinerpt_in_schoenhardtpoly(triface *abtets, int n,
   }
 
   for (i = 0; i < 3; i++) {
-    smtpt[i] = pc[i] + (stepi * (double) maxidx) * vcd[i];
+    smtpt[i] = pc[i] + (stepi * (REAL) maxidx) * vcd[i];
   }
 
   // Create two faked tets to hold the two non-existing boundary faces:
@@ -30704,7 +30704,7 @@ void tetgenmesh::outmesh2vtk(char* ofilename)
   char vtkfilename[FILENAMESIZE];
   point pointloop, p1, p2, p3, p4;
   tetrahedron* tptr;
-  double x, y, z;
+  REAL x, y, z;
   int n1, n2, n3, n4;
   int nnodes = 4;
   int celltype = 10;
@@ -30742,7 +30742,7 @@ void tetgenmesh::outmesh2vtk(char* ofilename)
   fprintf(outfile, "Unstructured Grid\n");
   fprintf(outfile, "ASCII\n"); // BINARY
   fprintf(outfile, "DATASET UNSTRUCTURED_GRID\n");
-  fprintf(outfile, "POINTS %d double\n", NN);
+  fprintf(outfile, "POINTS %d REAL\n", NN);
 
   points->traversalinit();
   pointloop = pointtraverse();

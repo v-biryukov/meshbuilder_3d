@@ -101,7 +101,7 @@ private:
           totalIncidentRegionsCount++;
         }
       }
-      for( unsigned int i = 0; i < contactFacesCount; i++)
+      for( int_t i = 0; i < contactFacesCount; i++)
       {
         for(int j = 0; j < 3; j++)
         {
@@ -314,7 +314,7 @@ private:
     void GetNodeRegions(IndexType nodeIndex, IndexType *incidentRegions)
     {
       if(nodeIndex >= nodesCount) return;
-      for( unsigned int i = 0; i < nodeInfo[nodeIndex].incidentRegionsCount; i++)
+      for( int_t i = 0; i < nodeInfo[nodeIndex].incidentRegionsCount; i++)
       {
         incidentRegions[i] = nodeInfo[nodeIndex].incidentRegions[i];
       }

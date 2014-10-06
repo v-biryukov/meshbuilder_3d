@@ -1,25 +1,32 @@
 cmake_minimum_required (VERSION 2.6)
 
-set (PROJECT meshbuilder)
+set (PROJECT meshbuilder_3d)
 
 project (${PROJECT})
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
-#set(BOOST_ROOT /s/ls2/home/users/gector/libs/boost_1_42_0/)
+
+# Add Boost
 set(BOOST_LIBRARYDIR /s/ls2/home/users/gector/libs/boost_old/lib/)
-#set(BOOST_INCLUDEDIR /s/ls2/home/users/gector/libs/boost_1_42_0/)
+set(BOOST_ROOT /s/ls2/home/users/gector/libs/boost_1_42_0m)
+set(BOOST_INCLUDEDIR /s/ls2/home/users/gector/libs/boost_1_42_0m)
+include_directories(${BOOST_INCLUDEDIR})
+#find_package(Boost COMPONENTS system filesystem REQUIRED)
 
-set(BOOST_ROOT /s/ls2/home/users/gector/libs/boost_1_42_0)
-set(BOOST_INCLUDEDIR /s/ls2/home/users/gector/libs/boost_1_42_0)
+# Add Triangle
+SET(TRIANGLE_SRC_DIR "${CMAKE_SOURCE_DIR}/libs/triangle")
 
-include_directories(./)
-include_directories(/s/ls2/home/users/gector/libs/boost_1_42_0)
-include_directories (${CMAKE_SOURCE_DIR}/libs/tetgen1.5.0/ ${CMAKE_SOURCE_DIR}/libs/triangle/)
-link_directories (${CMAKE_SOURCE_DIR}/libs/tetgen1.5.0/ ${CMAKE_SOURCE_DIR}/libs/triangle/)
+include_directories(${TRIANGLE_SRC_DIR})
+link_directories (${TRIANGLE_SRC_DIR})
 
-find_package(Boost COMPONENTS system filesystem REQUIRED)
+# Add Tetgen
+SET(TETGEN_SRC_DIR "${CMAKE_SOURCE_DIR}/libs/tetgen1.5.0")
+
+include_directories(${TETGEN_SRC_DIR})
+link_directories (${TETGEN_SRC_DIR})
+
 
 set(MY_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(MY_FIGURES_DIR ${CMAKE_SOURCE_DIR}/src/figures)
@@ -41,6 +48,6 @@ set (HEADERS
 set (SOURCES
 	${MY_SOURCE_DIR}/mesh.cpp)
 
-add_executable (${PROJECT} ${HEADERS} ${SOURCES})
-target_link_libraries (${PROJECT} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} libtetgen.a libtriangle.a)
+add_executable (${PROJECT} ${HEADERS} ${SOURCES} ${TRIANGLE_SRC_DIR}/triangle.o)
+target_link_libraries (${PROJECT} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${TETGEN_SRC_DIR}/libtet.a)
 

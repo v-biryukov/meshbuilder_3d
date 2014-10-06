@@ -38,7 +38,6 @@ namespace swift
     class mesh
     {
     private:
-        //figure main_boundary;
         std::vector<figure> figures;
         tetgenio in, out;
         struct {int x, y, z;} segments;
@@ -57,10 +56,8 @@ namespace swift
         int calculate_number_of_points();
         int calculate_number_of_trifacets();
         int calculate_number_of_holes();
-        //REAL (*volume_constraint)(REAL x, REAL y, REAL z);
         bool use_volume_constraints;
         void set_volume_constraints(tetgenio * mid);
-        //REAL volume_constraint(REAL x, REAL y, REAL z);
     public:
         mesh(){};
         mesh(char* path);
@@ -68,5 +65,4 @@ namespace swift
         void save(char* filename);
         void split_and_save();
     };
-
 }

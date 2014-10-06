@@ -12,8 +12,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
+//#include <boost/filesystem.hpp>
 #include <string.h>
 #include <set>
 #include <iterator>
@@ -22,6 +21,15 @@
 
 namespace swift
 {
+
+    using std::vector;
+    using std::string;
+    using std::stringstream;
+    using std::copy;
+    using std::sort;
+    using std::cout;
+    using std::endl;
+
     /*****************************************************************************
     *************  Mesh class  ***************************************************
     *****************************************************************************/
@@ -52,7 +60,7 @@ namespace swift
     int mesh::calculate_number_of_points()
     {
         int n = 0;
-        for (std::vector<figure>::size_type i = 0; i < figures.size(); i++)
+        for (vector<figure>::size_type i = 0; i < figures.size(); i++)
             n += figures.at(i).points.size();
         return n;
     }
@@ -60,7 +68,7 @@ namespace swift
     int mesh::calculate_number_of_trifacets()
     {
         int n = 0;
-        for (std::vector<figure>::size_type i = 0; i < figures.size(); i++)
+        for (vector<figure>::size_type i = 0; i < figures.size(); i++)
             n += figures.at(i).trifacets.size();
         return n;
     }
@@ -68,17 +76,14 @@ namespace swift
     int mesh::calculate_number_of_holes()
     {
         int n = 0;
-        for (std::vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
+        for (vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
             if ((*it).is_empty) n++;
         return n;
     }
 
-    void mesh::read_from_file(std::string path)
+    void mesh::read_from_file(string path)
     {
-        using std::string;
-        using std::cout;
         using std::cin;
-        using std::endl;
         using boost::lexical_cast;
         // reading of the config-file
         boost::property_tree::ptree pt;
@@ -93,8 +98,8 @@ namespace swift
                 << error.filename() << ", line "
                 << error.line() << endl;
             cout << "Error! Press any key to close." << endl;
-            std::cin.get();
-            // need to quit from the program
+            cin.get();
+            std::exit(1);
         }
 
         quality = pt.get<REAL>("Mesh.quality");
@@ -106,38 +111,25 @@ namespace swift
         for(int i = 1; i <= nof_figures; i++)
         {
             string type = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_type");
-            //string figpath = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_file");
 
-            if (use_volume_constraints)
-            {
-                if      (type == "custom")               {figures.push_back(figure(				  path, average_step, volume_constraint));}
-                else if (type == "cube") 				 {figures.push_back(cube(				  path, average_step, volume_constraint));}
-                else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array( path, average_step, volume_constraint));}
-                else if (type == "fracture") 			 {figures.push_back(fracture(			  path, average_step, volume_constraint));}
-                else if (type == "rect_boundary")  		 {figures.push_back(rect_boundary(  	  path, average_step, volume_constraint));}
-                else if (type == "cross_fracture") 		 {figures.push_back(cross_fracture(		  path, average_step, volume_constraint));}
-            }
-            else
-            {
-                if      (type == "custom")     			 {figures.push_back(figure(				  path, average_step, 0));}
-                else if (type == "cube") 				 {figures.push_back(cube(				  path, average_step, 0));}
-                else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array( path, average_step, 0));}
-                else if (type == "fracture") 			 {figures.push_back(fracture(			  path, average_step, 0));}
-                else if (type == "rect_boundary") 		 {figures.push_back(rect_boundary(		  path, average_step, 0));}
-                else if (type == "cross_fracture") 		 {figures.push_back(cross_fracture(		  path, average_step, 0));}
-            }
+            if      (type == "custom")               {figures.push_back(figure(				  path, average_step, 0));}
+            else if (type == "cube") 				 {figures.push_back(cube(				  path, average_step, 0));}
+            else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array( path, average_step, 0));}
+            else if (type == "fracture") 			 {figures.push_back(fracture(			  path, average_step, 0));}
+            else if (type == "rect_boundary")  		 {figures.push_back(rect_boundary(  	  path, average_step, 0));}
+            else if (type == "cross_fracture") 		 {figures.push_back(cross_fracture(		  path, average_step, 0));}
 
-            std::string s = pt.get<std::string>("Figures.figure" + lexical_cast<string>(i) + "_is_empty");
+
+            string s = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_is_empty");
             if (s == "true" || s == "True" || s == "TRUE")
                 figures.back().is_empty = true;
             else
                 figures.back().is_empty = false;
-            std::stringstream ss1(pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_position"));
+            stringstream ss1(pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_position"));
             ss1 >> figures.back().pos.x >> figures.back().pos.y >> figures.back().pos.z;
-            std::stringstream ss2(pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_angles"));
+            stringstream ss2(pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_angles"));
             ss2 >> figures.back().ang.alpha >> figures.back().ang.beta >> figures.back().ang.gamma;
             figures.back().make_triangulation();
-            //figures.push_back(f);
         }
     }
 
@@ -157,9 +149,9 @@ namespace swift
     void mesh::set_points()
     {
         int offset = 0;
-        for (std::vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
+        for (vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
         {
-            for (std::vector<point>::size_type i = 0; i < (*it).points.size(); i++)
+            for (vector<point>::size_type i = 0; i < (*it).points.size(); i++)
             {
                 point t = (*it).get_transformed_point(i);
                 in.pointlist[3*(i + offset) + 0] = t.x;
@@ -173,41 +165,49 @@ namespace swift
     void mesh::set_figure_boundaries(figure & f, int point_offset)
     {
         // Creating set of numbers of the non-contact facets
-        std::vector<int> facet_nums = f.get_non_contact_facets();
+        vector<int> facet_nums = f.get_non_contact_facets();
         // Setting boundaries
-        BOOST_FOREACH (int fn, facet_nums)
-            BOOST_FOREACH (int tfacn, f.facets.at(fn).trifacets)
+        for ( unsigned int i = 0; i < facet_nums.size(); i++ )
+        {
+            int fn = facet_nums.at(i);
+            for ( unsigned int j = 0; j < f.facets.at(fn).trifacets.size(); j++ )
             {
+                int tfacn = f.facets.at(fn).trifacets.at(j);
                 boundary_face tb = {int_t(f.trifacets.at(tfacn).points[0] + point_offset),
-				    int_t(f.trifacets.at(tfacn).points[1] + point_offset),
-				    int_t(f.trifacets.at(tfacn).points[2] + point_offset)};
+                                    int_t(f.trifacets.at(tfacn).points[1] + point_offset),
+                                    int_t(f.trifacets.at(tfacn).points[2] + point_offset)};
                 boundaries.push_back(tb);
             }
+        }
         // Setting contacts
-        BOOST_FOREACH (std::vector<int> c, f.contacts)
-            BOOST_FOREACH (int tfacn, f.facets.at(c.at(0)).trifacets)
+        for ( unsigned int i = 0; i < f.contacts.size(); i++ )
+        {
+            vector<int> c = f.contacts.at(i);
+            for ( unsigned int j = 0; j < f.facets.at(c.at(0)).trifacets.size(); j++ )
             {
+                int tfacn = f.facets.at(c.at(0)).trifacets.at(j);
                 int dif = *(f.facets.at(c.at(1)).trifacets.begin()) - *(f.facets.at(c.at(0)).trifacets.begin());
                 boundary_face c1 = {int_t(f.trifacets.at(tfacn).points[0] + point_offset),
-				    int_t(f.trifacets.at(tfacn).points[1] + point_offset),
-				    int_t(f.trifacets.at(tfacn).points[2] + point_offset)};
+                                    int_t(f.trifacets.at(tfacn).points[1] + point_offset),
+                                    int_t(f.trifacets.at(tfacn).points[2] + point_offset)};
                 boundary_face c2 = {int_t(f.trifacets.at(tfacn + dif).points[0] + point_offset),
-				    int_t(f.trifacets.at(tfacn + dif).points[1] + point_offset),
-				    int_t(f.trifacets.at(tfacn + dif).points[2] + point_offset)};
+                                    int_t(f.trifacets.at(tfacn + dif).points[1] + point_offset),
+                                    int_t(f.trifacets.at(tfacn + dif).points[2] + point_offset)};
                 contact_face temp;
-		temp.faces[0] = c1;
+                temp.faces[0] = c1;
                 temp.faces[1] = c2;
                 contacts.push_back(temp);
-	    }
+            }
+        }
     }
 
     void mesh::set_boundaries()
     {
         int offset = 0;
-        BOOST_FOREACH (figure & f, figures)
+        for ( unsigned int i = 0; i < figures.size(); i++ )
         {
-            set_figure_boundaries(f, offset);
-            offset += f.points.size();
+            set_figure_boundaries(figures.at(i), offset);
+            offset += figures.at(i).points.size();
         }
     }
 
@@ -242,7 +242,7 @@ namespace swift
     void mesh::set_holes()
     {
         int i = 0;
-        for (std::vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
+        for (vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
             if ((*it).is_empty)
             {
                 point t = (*it).transform((*it).hole);
@@ -280,42 +280,42 @@ namespace swift
 
     void mesh::build()
     {
-        std::stringstream conv_stream;
+        stringstream conv_stream;
         // convert quality and average_step to char*
         conv_stream.clear();
         conv_stream.str("");
         conv_stream << quality;
-        std::string str_quality;
+        string str_quality;
         conv_stream >> str_quality;
 
         REAL a = average_step*average_step*average_step/6.0;
         conv_stream.clear();
         conv_stream.str("");
         conv_stream << a;
-        std::string str_a;
+        string str_a;
         conv_stream >> str_a;
 
-        std::string tetraparam;
+        string tetraparam;
         if (quality == 0.0)
             tetraparam = "pa" + str_a + "Y";
         else
             tetraparam = "pq" + str_quality + "a" + str_a + "Y";
-        //std::string tetraparam = "qa10V";
+        //string tetraparam = "qa10V";
         // Converting string to char* first
         char * tempparam = new char[tetraparam.size() + 1];
-        std::copy(tetraparam.begin(), tetraparam.end(), tempparam);
+        copy(tetraparam.begin(), tetraparam.end(), tempparam);
         tempparam[tetraparam.size()] = '\0';
         //in.save_nodes((char*)"in2");
         //in.save_poly((char*)"in2");
         // Main calculations
         if (!use_volume_constraints)
         {
-            std::cout << "Tetgen parameters = " << tempparam << std::endl;
+            cout << "Tetgen parameters = " << tempparam << endl;
             tetrahedralize(tempparam, &in, &out);
         }
         else
         {
-            std::cout << "First tetgen parameters = " << tempparam << std::endl;
+            cout << "First tetgen parameters = " << tempparam << endl;
             tetgenio mid;
             tetrahedralize(tempparam, &in, &mid);
             if (quality == 0.0)
@@ -323,9 +323,9 @@ namespace swift
             else
                 tetraparam = "rq" + str_quality + "aa" + str_a + "Y";
             tempparam = new char[tetraparam.size() + 1];
-            std::copy(tetraparam.begin(), tetraparam.end(), tempparam);
+            copy(tetraparam.begin(), tetraparam.end(), tempparam);
             tempparam[tetraparam.size()] = '\0';
-            std::cout << "Second tetgen parameters = " << tempparam << std::endl;
+            cout << "Second tetgen parameters = " << tempparam << endl;
             set_volume_constraints(&mid);
             tetrahedralize(tempparam, &mid, &out);
         }
@@ -334,8 +334,8 @@ namespace swift
 
     void mesh::save(char* filename)
     {
-		//in.save_nodes((char*)"in");
-        //in.save_poly((char*)"in");
+		in.save_nodes((char*)"in");
+        in.save_poly((char*)"in");
         out.save_nodes(filename);
         out.save_elements(filename);
         out.save_faces(filename);
@@ -386,7 +386,7 @@ namespace swift
         // Isn't my code
         int_t cellsCount = out.numberoftetrahedra;
         int_t nodesCount = out.numberofpoints;
-        std::cout << "cellsCount = " << cellsCount << "\n";
+        cout << "cellsCount = " << cellsCount << "\n";
         typedef MeshSplitter::TransitionNode TransitionNode;
         Vector3 * vertices = new Vector3[nodesCount];
         for (int_t i = 0; i < nodesCount; i++)
@@ -399,7 +399,7 @@ namespace swift
 	    int_t * cellIndices  = new int_t [4 * cellsCount];
         int_t * meshIds      = new int_t [cellsCount];
         CellAvgPoint *cellPoints = new CellAvgPoint[cellsCount];
-        for( unsigned int i = 0; i < cellsCount; i++)
+        for( int_t i = 0; i < cellsCount; i++)
         {
             meshIds[i] = 0;
 	    cellIndices[4*i+0] = int_t(out.tetrahedronlist[4*i+0]);
@@ -421,7 +421,7 @@ namespace swift
 
         int currSegment;
         //typedef bool (*ftype)(CellAvgPoint,CellAvgPoint);
-        std::sort(cellPoints, cellPoints + cellsCount, CellAvgPoint::CompareX);
+        sort(cellPoints, cellPoints + cellsCount, CellAvgPoint::CompareX);
         currSegment = 0;
         for(int_t i = 0; i < cellsCount; i++)
         {
@@ -429,7 +429,7 @@ namespace swift
                 currSegment++;
             meshIds[cellPoints[i].cellIndex] += currSegment;
         }
-        std::sort(cellPoints, cellPoints + cellsCount, CellAvgPoint::CompareY);
+        sort(cellPoints, cellPoints + cellsCount, CellAvgPoint::CompareY);
         currSegment = 0;
         for(int_t i = 0; i < cellsCount; i++)
         {
@@ -437,7 +437,7 @@ namespace swift
                 currSegment++;
             meshIds[cellPoints[i].cellIndex] += xSegmentsCount * currSegment;
         }
-        std::sort(cellPoints, cellPoints + cellsCount, CellAvgPoint::CompareZ);
+        sort(cellPoints, cellPoints + cellsCount, CellAvgPoint::CompareZ);
         currSegment = 0;
         for(int_t i = 0; i < cellsCount; i++)
         {
@@ -449,7 +449,7 @@ namespace swift
 
         // Complications here ////////////////////////////////////////////
 
-        std::cout << "Splitting mesh" << std::endl;
+        cout << "Splitting mesh" << endl;
         int_t subMeshesCount = 1;
         int_t * subMeshNodesCount = new int_t[subMeshesCount];
         subMeshNodesCount[0] = out.numberofpoints;
@@ -458,11 +458,12 @@ namespace swift
         int_t n_of_slices = main_boundary->facets.size()/6 - 1;
         // All fractures - one boundary type or/and one contact type
 
-        std::vector<int_t> contactFacesCount;
-	//contactFacesCount.push_back(contacts.size());
+        vector<int_t> contactFacesCount;
+        //contactFacesCount.push_back(contacts.size());
         int_t n = 0;
-        BOOST_FOREACH ( std::vector<int> c, main_boundary->contacts)
+        for ( int_t i = 0; i < main_boundary->contacts.size(); i++ )
         {
+            vector<int> c = main_boundary->contacts.at(i);
             contactFacesCount.push_back(main_boundary->facets.at(c.at(0)).trifacets.size());
             n += main_boundary->facets.at(c.at(0)).trifacets.size();
         }
@@ -471,14 +472,14 @@ namespace swift
                 contactFacesCount.push_back(contacts.size() - n);
         }
 
-        std::vector<int_t> boundaryFacesCount;
+        vector<int_t> boundaryFacesCount;
         boundaryFacesCount.push_back(main_boundary->facets.at(0).trifacets.size());
         boundaryFacesCount.push_back(main_boundary->facets.at(1).trifacets.size());
         n = main_boundary->facets.at(0).trifacets.size() + main_boundary->facets.at(1).trifacets.size();
         for (int i = 0; i < 4; i++)
         {
             int_t m = 0;
-            for ( unsigned int j = 0; j <= n_of_slices; j++)
+            for ( int_t j = 0; j <= n_of_slices; j++)
                 m += main_boundary->facets.at(2 + j + (n_of_slices+1)*i).trifacets.size();
             boundaryFacesCount.push_back(m);
             n += m;
@@ -492,7 +493,7 @@ namespace swift
         mesh_splitter.LoadBaseMeshes(cellIndices, meshIds, cellsCount, subMeshNodesCount, subMeshesCount,
                                         contacts.data(), contactFacesCount.data(), contactFacesCount.size(),
                                         boundaries.data(), boundaryFacesCount.data(), boundaryFacesCount.size());
-        std::cout << "Mesh was split successfully" << std::endl << std::endl;
+        cout << "Mesh was split successfully" << endl << endl;
 
         int_t meshesCount = mesh_splitter.GetMeshesCount();
         int_t maxNodesCount = 0;
@@ -505,37 +506,26 @@ namespace swift
         int_t *localCellIndicesBuf          = new int_t       [maxCellsCount * 4];
         int_t *localNodeGlobalIndicesBuf    = new int_t       [maxNodesCount];
         Vector3   *localVerticesBuf       = new Vector3         [maxNodesCount];
-        //TransitionNode *transitionNode    = new TransitionNode  [maxNodesCount];
         int_t *localSubmeshNodesCount       = new int_t       [subMeshesCount];
 
-        std::cout << "Submesh count = " << subMeshesCount << "\n";
-        std::cout << "Separate mesh files now will be saved" << std::endl << std::endl;
-        std::cout << "Global mesh info:" << std::endl << "  nodes: " << nodesCount << std::endl << "  cells: " << cellsCount << std::endl << std::endl << std::endl;
-
-        boost::filesystem::path p("Data");
-        if (!boost::filesystem::exists(p))
-            if(boost::filesystem::create_directory(p))
-                std::cout << "Data directory has been successfully created." << "\n";
-
-        std::cout << "Deleting all files in data directory." << "\n";
-        for (boost::filesystem::directory_iterator end_dir_it, it(p); it!=end_dir_it; ++it) {
-            remove_all(it->path());
-        }
+        cout << "Submesh count = " << subMeshesCount << "\n";
+        cout << "Separate mesh files now will be saved" << endl << endl;
+        cout << "Global mesh info:" << endl << "  nodes: " << nodesCount << endl << "  cells: " << cellsCount << endl << endl << endl;
 
         for(int_t meshIndex = 0; meshIndex < meshesCount; meshIndex++)
         {
 
-            std::string filePath = "Data/";
-            std::stringstream fileName; fileName << "Mesh" << meshIndex << ".sm";
-            std::string fileFullName = filePath + fileName.str();
-            std::cout << "Saving mesh " << fileFullName << std::endl;
+            string filePath = "Data/";
+            stringstream fileName; fileName << "Mesh" << meshIndex << ".sm";
+            string fileFullName = filePath + fileName.str();
+            cout << "Saving mesh " << fileFullName << endl;
             std::ofstream outFile;
             outFile.open(fileFullName.c_str(), std::ios::out | std::ios::binary);
             int_t localCellsCount = mesh_splitter.GetCellsCount(meshIndex);
             int_t localNodesCount = mesh_splitter.GetNodesCount(meshIndex);
             outFile.write((const char*)&localCellsCount, sizeof(int_t));
             outFile.write((const char*)&localNodesCount, sizeof(int_t));
-            std::cout << fileName.str() << " info:" << std::endl << "  nodes: " << localNodesCount << std::endl << "  cells: " << localCellsCount << std::endl;
+            cout << fileName.str() << " info:" << endl << "  nodes: " << localNodesCount << endl << "  cells: " << localCellsCount << endl;
             mesh_splitter.GetCellLocalIndices(meshIndex, localCellIndicesBuf);
             outFile.write((const char*)localCellIndicesBuf, localCellsCount * 4 * sizeof(int_t));
             mesh_splitter.GetLocalNodesGlobalIndices(meshIndex, localNodeGlobalIndicesBuf);
@@ -582,7 +572,7 @@ namespace swift
                 outFile.write((const char*)boundaryFaces, sizeof(boundary_face) * localBoundaryFacesCount);
                 delete [] boundaryFaces;
             }
-            std::cout << "writing shared mesh info" << std::endl;
+            cout << "writing shared mesh info" << endl;
             int_t sharedDomainsCount = mesh_splitter.GetSharedRegionsCount(meshIndex);
             outFile.write((const char*)&sharedDomainsCount, sizeof(int_t));
             for(int_t regionIndex = 0; regionIndex < sharedDomainsCount; regionIndex++)
@@ -603,9 +593,9 @@ namespace swift
                 delete transitionNodesBuf;
             }
             outFile.close();
-            std::cout << std::endl;
+            cout << endl;
             //Debug
-            std::cout << "Saving .node file" << std::endl;
+            cout << "Saving .node file" << endl;
             fileName.clear();
             fileName.str("");
             fileName << "Mesh" << meshIndex << ".node";
@@ -621,7 +611,7 @@ namespace swift
                 outFile << localVerticesBuf[localNodeIndex].z << "\n";
             }
             outFile.close();
-            std::cout << "Saving .ele file" << std::endl;
+            cout << "Saving .ele file" << endl;
             fileName.clear();
             fileName.str("");
             fileName << "Mesh" << meshIndex << ".ele";
@@ -629,7 +619,7 @@ namespace swift
             outFile.open(fileFullName.c_str(), std::ios::out);
             outFile << localCellsCount;
             outFile << " 4 0\n";
-            for( unsigned int localCellIndex = 0; localCellIndex < localCellsCount; localCellIndex++)
+            for( int_t localCellIndex = 0; localCellIndex < localCellsCount; localCellIndex++)
             {
                 outFile << localCellIndex << " ";
                 outFile << localCellIndicesBuf[localCellIndex * 4 + 0] << " ";

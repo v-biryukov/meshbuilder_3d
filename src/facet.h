@@ -17,7 +17,6 @@
 #include "point.h"
 #include "edge.h"
 #include "settings.h"
-#include <boost/foreach.hpp>
 extern "C"
 {
 #include "triangle.h"
@@ -108,8 +107,9 @@ namespace swift
             add_edges_by_points(ve);
             //add_corner_points(ve);
             // Creating points on all edges
-            BOOST_FOREACH(int e, edges)
+            for ( unsigned int i = 0; i < edges.size(); i++ )
             {
+                int e = edges.at(i);
                 if (ve.at(e).points.empty())
                 {
                     ve.at(e).make_triangulation(vp, av_step, f);
@@ -220,6 +220,18 @@ namespace swift
                 vt.push_back(trifacet(points[out.trianglelist[3*i]], points[out.trianglelist[3*i + 1]], points[out.trianglelist[3*i + 2]]));
                 trifacets.push_back(vt.size()-1);
             }
+
+            free(in.pointlist);
+            free(in.segmentlist);
+
+            free(out.pointlist);
+            free(out.segmentlist);
+            free(out.edgelist);
+            free(out.trianglelist);
+            free(out.segmentmarkerlist);
+            free(out.edgemarkerlist);
+            free(out.pointmarkerlist);
+            free(out.triangleattributelist);
         }
 
         void take_triangulation( std::vector< point > & vp, std::vector< trifacet > & vt, std::vector<edge> & ve, facet & f)
@@ -230,8 +242,9 @@ namespace swift
             add_edges_by_points(ve);
 
             vector<point> main_points;
-            BOOST_FOREACH (int e, edges)
+            for ( unsigned int i = 0; i < edges.size(); i++ )
             {
+                int e = edges.at(i);
                 point sp = vp.at(ve.at(e).start_point);
                 point fp = vp.at(ve.at(e).finish_point);
                 if (find(main_points.begin(), main_points.end(), sp) == main_points.end())
@@ -241,8 +254,9 @@ namespace swift
             }
 
             vector<point> f_points;
-            BOOST_FOREACH(int e, f.edges)
+            for ( unsigned int i = 0; i < f.edges.size(); i++ )
             {
+                int e = f.edges.at(i);
                 point sp = vp.at(ve.at(e).start_point);
                 point fp = vp.at(ve.at(e).finish_point);
                 if (find(f_points.begin(), f_points.end(), sp) == f_points.end())
@@ -253,16 +267,21 @@ namespace swift
             point normal = (main_points[0] - main_points[1]).vec(main_points[0] - main_points[2]);
             normal = normal / normal.norm();
             point dif = point(0, 0, 0);
-            BOOST_FOREACH (point p, main_points)
-                dif = dif + p;
-            BOOST_FOREACH (point p, f_points)
-                dif = dif - p;
+            for ( unsigned int i = 0; i < main_points.size(); i++ )
+            {
+                dif = dif + main_points.at(i);
+            }
+            for ( unsigned int i = 0; i < f_points.size(); i++ )
+            {
+                dif = dif + f_points.at(i);
+            }
             dif = dif / dif.norm();
 
             for (std::vector<int>::size_type i = 0; i < f.edges.size(); i++)
             {
-                BOOST_FOREACH(int pe, ve.at(f.edges.at(i)).points)
+                for ( unsigned int j = 0; j < ve.at(f.edges.at(i)).points.size(); j++ )
                 {
+                    int pe = ve.at(f.edges.at(i)).points.at(j);
                     point p = project(vp.at(pe), dif, normal, (main_points.at(0) + main_points.at(1) + main_points.at(2))/3 );
                     std::vector<point>::iterator it = find(vp.begin(), vp.end(), p);
                     if (it == vp.end())

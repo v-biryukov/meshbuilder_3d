@@ -31,15 +31,15 @@ namespace swift
 
         bool is_empty;
         point hole;
-        double av_step;
+        REAL av_step;
         REAL (*constraints)(REAL, REAL, REAL);
 
         point pos;
         struct {REAL alpha, beta, gamma;} ang;
 
         figure(){};
-        figure(std::string path, double av_step_t, REAL (*constraints_t)(REAL, REAL, REAL) = 0);
-        figure(std::vector<point> & tpoints, std::vector<edge> & tedges, std::vector<facet> & tfacets, double av_step_t, point hole_t);
+        figure(std::string path, REAL av_step_t, REAL (*constraints_t)(REAL, REAL, REAL) = 0);
+        figure(std::vector<point> & tpoints, std::vector<edge> & tedges, std::vector<facet> & tfacets, REAL av_step_t, point hole_t);
         void make_triangulation();
         virtual void read_from_file(std::string path);
         virtual void set_data();
@@ -50,7 +50,7 @@ namespace swift
     };
 
 
-    figure::figure(std::string path, double av_step_t, REAL (*constraints_t)(REAL, REAL, REAL))
+    figure::figure(std::string path, REAL av_step_t, REAL (*constraints_t)(REAL, REAL, REAL))
     {
         av_step = av_step_t;
         constraints = constraints_t;
@@ -58,7 +58,7 @@ namespace swift
         set_data();
     }
 
-    figure::figure(std::vector<point> & tpoints, std::vector<edge> & tedges, std::vector<facet> & tfacets, double av_step_t, point hole_t = point(0, 0, 0))
+    figure::figure(std::vector<point> & tpoints, std::vector<edge> & tedges, std::vector<facet> & tfacets, REAL av_step_t, point hole_t = point(0, 0, 0))
     {
         av_step = av_step_t;
         points = tpoints;
@@ -86,19 +86,22 @@ namespace swift
         //    e.make_triangulation(points, av_step, f);
         set_edges_by_facets();
         std::vector<int> v = get_non_contact_facets();
-        BOOST_FOREACH (std::vector<int> c, contacts) {
+        for ( unsigned int i = 0; i < contacts.size(); i++ )
+        {
+            std::vector<int> c = contacts.at(i);
             facets.at(c.at(0)).make_triangulation(points, trifacets, edges, av_step, constraints);
             facets.at(c.at(1)).make_triangulation(points, trifacets, edges, av_step, constraints);
             //facets.at(c.at(1)).take_triangulation(points, trifacets, edges, facets.at(c.at(0)));
         }
-        BOOST_FOREACH (int i, v)
-            facets.at(i).make_triangulation(points, trifacets, edges, av_step, constraints);
+        for ( unsigned int i = 0; i < v.size(); i++ )
+            facets.at(v.at(i)).make_triangulation(points, trifacets, edges, av_step, constraints);
     }
 
     void figure::set_edges_by_facets()
     {
-        BOOST_FOREACH (facet f, facets)
+        for ( unsigned int i = 0; i < facets.size(); i++ )
         {
+            facet f = facets.at(i);
             for (std::vector<int>::size_type i = 0; i < f.points.size(); i++)
             {
                 edge e = edge(f.points.at(i), f.points.at((i+1) % f.points.size()));
@@ -162,22 +165,6 @@ namespace swift
             ss >> p.z;
             points.push_back(p);
         }
-        // Reading edges info
-        /*
-        int num_of_edges;
-        file >> num_of_edges;
-        std::getline(file, s);
-        for (int i = 0; i < num_of_edges; i++)
-        {
-            ss.clear();
-            ss.str("");
-            std::getline(file, s);
-            ss << s;
-            int start, finish;
-            ss >> start >> finish;
-            edge e(start, finish);
-            edges.push_back(e);
-        }*/
         // Reading facets info
         int num_of_facets;
         file >> num_of_facets;
