@@ -11,8 +11,7 @@
 
 #pragma once
 #include "../figure.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
+#include "profile/Profile.h"
 
 namespace swift
 {
@@ -29,6 +28,8 @@ namespace swift
         }
         virtual void read_from_file(std::string path);
         virtual void set_data();
+        virtual void set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount);
+
     };
 
 
@@ -38,22 +39,18 @@ namespace swift
         using std::cout;
         using std::cin;
         using std::endl;
-        boost::property_tree::ptree pt;
+        Profile ini;
         try
         {
-            boost::property_tree::read_ini(path, pt);
+            ini = Profile(path);
         }
-        catch (boost::property_tree::ini_parser_error& error)
+        catch (...)
         {
-            cout
-                << error.message() << ": "
-                << error.filename() << ", line "
-                << error.line() << endl;
-            cout << "Error! Press any key to close." << endl;
-            std::cin.get();
-            // need to quit from the program
+            cout << "Error while reading ini file! Press any key to close." << endl;
+            cin.get();
+            std::exit(1);
         }
-        size = pt.get<REAL>("Cube.size");
+        size = ini.request<REAL>("Cube", "size", -1);
     }
 
     void cube::set_data()
@@ -73,5 +70,18 @@ namespace swift
         facets.push_back(facet(7, 5, 3, 6));
         facets.push_back(facet(6, 7, 4, 2));
     }
+
+
+    void cube::set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount)
+    {
+        int n = 0;
+        for (int i = 0; i < this->facets.size(); i++)
+            n += this->facets[i].trifacets.size();
+
+        boundaryFacesCount.push_back(n);
+    }
+
+
+
 
 }

@@ -11,8 +11,7 @@
 
 #pragma once
 #include "../figure.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
+#include "profile/Profile.h"
 
 namespace swift
 {
@@ -32,6 +31,8 @@ namespace swift
         }
         virtual void read_from_file(std::string path);
         virtual void set_data();
+        virtual void set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount);
+
     };
 
 
@@ -41,31 +42,29 @@ namespace swift
         using std::cout;
         using std::cin;
         using std::endl;
-        boost::property_tree::ptree pt;
+        Profile ini;
         try
         {
-            boost::property_tree::read_ini(path, pt);
+            ini = Profile(path);
         }
-        catch (boost::property_tree::ini_parser_error& error)
+        catch (...)
         {
-            cout
-                << error.message() << ": "
-                << error.filename() << ", line "
-                << error.line() << endl;
-            cout << "Error! Press any key to close." << endl;
-            std::cin.get();
-            // need to quit from the program
+            cout << "Error while reading ini file! (fracture) Press any key to close." << endl;
+            cin.get();
+            std::exit(1);
         }
-        height = pt.get<REAL>("Fracture.height");
-        length = pt.get<REAL>("Fracture.length");
-        thickness = pt.get<REAL>("Fracture.thickness");
-        hpart = pt.get<REAL>("Fracture.hpart");
-        lpart = pt.get<REAL>("Fracture.lpart");
-        std::string s = pt.get<std::string>("Fracture.is_contact");
-        if (s == "true" || s == "True" || s == "TRUE")
-            is_contact = true;
-        else
-            is_contact = false;
+        height = ini.request<REAL>("Fracture", "height", -1);
+        length = ini.request<REAL>("Fracture", "length", -1);
+        thickness = ini.request<REAL>("Fracture", "thickness", -1);
+        hpart = ini.request<REAL>("Fracture", "hpart", -1);
+        lpart = ini.request<REAL>("Fracture", "lpart", -1);
+
+        std::string s = ini.request<std::string>("Fracture", "is_contact", "none");
+        if ( s == "none" )
+        {
+            cout << "Error while reading ini file! (fracture)";
+        }
+        is_contact =  (s == "true" || s == "True" || s == "TRUE");
     }
 
     void fracture::set_data()
@@ -109,6 +108,11 @@ namespace swift
             temp[0] = 8; temp[1] = 9;
             contacts.push_back(temp);
         }
+    }
+
+    void fracture::set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount)
+    {
+
     }
 
 }

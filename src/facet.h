@@ -1,3 +1,4 @@
+#pragma once
 /*****************************************************************************
 * name: facet.h
 *
@@ -8,6 +9,7 @@
 * license: GPLv3
 *
 *****************************************************************************/
+
 
 #include <iostream>
 #include <vector>
@@ -21,6 +23,8 @@ extern "C"
 {
 #include "triangle.h"
 }
+
+
 namespace swift
 {
     struct trifacet
@@ -39,8 +43,7 @@ namespace swift
         std::vector< int > edges;
         std::vector< int > points;
         std::vector< int > trifacets;
-
-        struct triangulateio in, out;
+        std::vector< trifacet > full_trifacets;
 
         facet(std::vector<int> e)
         {
@@ -102,7 +105,7 @@ namespace swift
                     }
         }
 
-        void make_triangulation( std::vector< point > & vp, std::vector< trifacet > & vt, std::vector<edge> & ve, REAL av_step = 0, REAL (*f)(REAL,REAL,REAL) = 0 )
+        void make_triangulation( std::vector< point > & vp, std::vector< trifacet > & vt, std::vector<edge> & ve, REAL av_step = 0)
         {
             add_edges_by_points(ve);
             //add_corner_points(ve);
@@ -112,7 +115,7 @@ namespace swift
                 int e = edges.at(i);
                 if (ve.at(e).points.empty())
                 {
-                    ve.at(e).make_triangulation(vp, av_step, f);
+                    ve.at(e).make_triangulation(vp, av_step);
                 }
                 for(std::vector<int>::iterator jt = ve.at(e).points.begin()+1; jt != ve.at(e).points.end() - 1; jt++)
                 {
@@ -127,115 +130,151 @@ namespace swift
             main_points.push_back(vp.at(points.at(2)));
             point normal = (main_points[0] - main_points[1]).vec(main_points[0] - main_points[2]);
             normal = normal / normal.norm();
-            // Setting triangulateio in and out:
-            in.numberofpoints = points.size();
-            in.numberofpointattributes = 0;
-            in.pointlist = (REAL *) malloc(in.numberofpoints * 2 * sizeof(REAL));
-            in.pointmarkerlist = (int *) NULL;
-            in.pointattributelist = (REAL *) NULL;
             point p0 = main_points[1] - main_points[0];
             p0 = p0 / p0.norm();
-            for (int i = 0; i < in.numberofpoints; i++)
+
+            //if (use_triangle_over_fade)
             {
-                in.pointlist[2*i + 0] = (vp.at(points[i])).projx(normal, p0);
-                in.pointlist[2*i + 1] = (vp.at(points[i])).projy(normal, p0);
-                //std::cout << i << " : " << in.pointlist[2*i + 0] << "  " << in.pointlist[2*i + 1] << "\n";
-            }
+                struct triangulateio in, out;
+                // Setting triangulateio in and out:
 
-            in.numberofsegments = in.numberofpoints;
-            in.segmentlist = (int *) malloc(in.numberofsegments * 2 * sizeof(int));
-            std::vector<int> temp_vec;
-            add_segments_from_edges(temp_vec, ve);
-            std::copy(temp_vec.begin(), temp_vec.end(),in.segmentlist);
-            //for (int i = 0; i < in.numberofsegments; i++)
-            //{
-            //    std::cout << i << " : " << in.segmentlist[2*i + 0] << "  " << in.segmentlist[2*i + 1] << "\n";
-            //}
-            in.numberofholes = 0;
-            in.numberofregions = 0;
-            in.holelist = (REAL *) NULL;
-            in.regionlist = (REAL *) NULL;
+                in.pointlist = (REAL*)(NULL);
+				in.pointattributelist = (REAL*)(NULL);
+				in.pointmarkerlist = (int*)(NULL);
+				in.numberofpoints = 0;
+				in.numberofpointattributes = 0;
 
-            out.pointlist = (REAL *) NULL;
-            out.pointattributelist = (REAL *) NULL;
-            out.pointmarkerlist = (int *) NULL;
-            out.trianglelist = (int *) NULL;
-            out.triangleattributelist = (REAL *) NULL;
-            out.neighborlist = (int *) NULL;
-            out.segmentlist = (int *) NULL;
-            out.segmentmarkerlist = (int *) NULL;
-            out.edgelist = (int *) NULL;
-            out.edgemarkerlist = (int *) NULL;
+				in.trianglelist = (int*)(NULL);
+				in.triangleattributelist = (REAL*)(NULL);
+				in.trianglearealist = (REAL*)(NULL);
+				in.neighborlist = (int*)(NULL);
+				in.numberoftriangles = 0;
+				in.numberofcorners = 0;
+				in.numberoftriangleattributes = 0;
+
+				in.segmentlist = (int*)(NULL);
+				in.segmentmarkerlist = (int*)(NULL);
+				in.numberofsegments = 0;
+
+				in.holelist = (REAL*)(NULL);
+				in.numberofholes = 0;
+
+				in.regionlist = (REAL*)(NULL);
+				in.numberofregions = 0;
+
+				in.edgelist = (int*)(NULL);
+				in.edgemarkerlist = (int*)(NULL);
+				in.normlist = (REAL*)(NULL);
+				in.numberofedges = 0;
+
+                in.numberofpoints = points.size();
+                in.numberofpointattributes = 0;
+                in.pointlist = (REAL *) malloc(in.numberofpoints * 2 * sizeof(REAL));
+                in.pointmarkerlist = (int *) NULL;
+                in.pointattributelist = (REAL *) NULL;
+
+                for (int i = 0; i < in.numberofpoints; i++)
+                {
+                    in.pointlist[2*i + 0] = (vp.at(points[i])).projx(normal, p0);
+                    in.pointlist[2*i + 1] = (vp.at(points[i])).projy(normal, p0);
+                    //std::cout << "" << in.pointlist[2*i + 0] << " " << in.pointlist[2*i + 1] << std::endl;
+                }
+
+                in.numberofsegments = in.numberofpoints;
+                in.segmentlist = (int *) malloc(in.numberofsegments * 2 * sizeof(int));
+				in.segmentmarkerlist = (int *) NULL;
+                std::vector<int> temp_vec;
+                add_segments_from_edges(temp_vec, ve);
+                std::copy(temp_vec.begin(), temp_vec.end(),in.segmentlist);
 
 
-            if (f == 0)
-            {
-                std::stringstream ss;
-                ss << "pzqQYa" << av_step * av_step / 2;
+                out.pointlist = (REAL*)(NULL);
+				out.pointattributelist = (REAL*)(NULL);
+				out.pointmarkerlist = (int*)(NULL);
+				out.numberofpoints = 0;
+				out.numberofpointattributes = 0;
+
+				out.trianglelist = (int*)(NULL);
+				out.triangleattributelist = (REAL*)(NULL);
+				out.trianglearealist = (REAL*)(NULL);
+				out.neighborlist = (int*)(NULL);
+				out.numberoftriangles = 0;
+				out.numberofcorners = 0;
+				out.numberoftriangleattributes = 0;
+
+				out.segmentlist = (int*)(NULL);
+				out.segmentmarkerlist = (int*)(NULL);
+				out.numberofsegments = 0;
+
+				out.holelist = (REAL*)(NULL);
+				out.numberofholes = 0;
+
+				out.regionlist = (REAL*)(NULL);
+				out.numberofregions = 0;
+
+				out.edgelist = (int*)(NULL);
+				out.edgemarkerlist = (int*)(NULL);
+				out.normlist = (REAL*)(NULL);
+				out.numberofedges = 0;
+
+                std::stringstream ss5;
+                ss5 << "pzqQYa" << av_step * av_step / 2;
                 std::string str;
-                ss >> str;
+                ss5 >> str;
                 char * s = new char[str.size() + 1];
                 std::copy(str.begin(), str.end(), s);
                 s[str.size()] = '\0';
                 triangulate(s, &in, &out, (struct triangulateio *) NULL);
-            }
-            else
-            {
-                struct triangulateio mid;
-                mid.pointlist = (REAL *) NULL;
-                mid.pointattributelist = (REAL *) NULL;
-                mid.pointmarkerlist = (int *) NULL;
-                mid.trianglelist = (int *) NULL;
-                mid.triangleattributelist = (REAL *) NULL;
-                mid.neighborlist = (int *) NULL;
-                mid.segmentlist = (int *) NULL;
-                mid.segmentmarkerlist = (int *) NULL;
-                mid.edgelist = (int *) NULL;
-                mid.edgemarkerlist = (int *) NULL;
-                std::stringstream ss;
-                ss << "pzqQYa" << av_step * av_step / 2;
-                std::string str;
-                ss >> str;
-                char * s = new char[str.size() + 1];
-                std::copy(str.begin(), str.end(), s);
-                s[str.size()] = '\0';
-                triangulate(s, &in, &mid, (struct triangulateio *) NULL);
-                mid.trianglearealist = (REAL *) malloc(mid.numberoftriangles * sizeof(REAL));
-                for (int i = 0; i < mid.numberoftriangles; i++)
+
+
+                for (int i = in.numberofpoints; i < out.numberofpoints; i++)
                 {
-                    point p = normal * normal.dot(main_points[0]) + get_by_proj(normal, mid.pointlist[2*mid.trianglelist[i]], mid.pointlist[2*mid.trianglelist[i]+1], p0);
-                    mid.trianglearealist[i] = f(p.x, p.y, p.z)*f(p.x, p.y, p.z)*av_step*av_step/2;
+                    vp.push_back(normal * normal.dot(main_points[0]) + get_by_proj(normal, out.pointlist[2*i], out.pointlist[2*i+1], p0));
+                    points.push_back(vp.size()-1);
                 }
-                triangulate((char*)"rzqYa", &mid, &out, (struct triangulateio *) NULL);
+
+                for (int i = 0; i < out.numberoftriangles; i++)
+                {
+                    vt.push_back(trifacet(points[out.trianglelist[3*i]], points[out.trianglelist[3*i + 1]], points[out.trianglelist[3*i + 2]]));
+                    trifacets.push_back(vt.size()-1);
+                    full_trifacets.push_back(trifacet(out.trianglelist[3*i], out.trianglelist[3*i + 1], out.trianglelist[3*i + 2]));
+                }
+				
+
+				if (in.pointlist)             free(in.pointlist);
+			    if (in.pointattributelist)    free(in.pointattributelist);
+			    if (in.pointmarkerlist)       free(in.pointmarkerlist);
+			    if (in.trianglelist)          free(in.trianglelist);
+			    if (in.triangleattributelist) free(in.triangleattributelist);
+			    if (in.trianglearealist)      free(in.trianglearealist);
+			    if (in.neighborlist)          free(in.neighborlist);
+			    if (in.segmentlist)           free(in.segmentlist);
+			    if (in.segmentmarkerlist)     free(in.segmentmarkerlist);
+			    if (in.regionlist)            free(in.regionlist);
+			    if (in.edgelist)              free(in.edgelist);
+			    if (in.edgemarkerlist)        free(in.edgemarkerlist);
+			    if (in.normlist)              free(in.normlist);
+
+				if (out.pointlist)             free(out.pointlist);
+			    if (out.pointattributelist)    free(out.pointattributelist);
+			    if (out.pointmarkerlist)       free(out.pointmarkerlist);
+			    if (out.trianglelist)          free(out.trianglelist);
+			    if (out.triangleattributelist) free(out.triangleattributelist);
+			    if (out.trianglearealist)      free(out.trianglearealist);
+			    if (out.neighborlist)          free(out.neighborlist);
+			    if (out.segmentlist)           free(out.segmentlist);
+			    if (out.segmentmarkerlist)     free(out.segmentmarkerlist);
+			    if (out.regionlist)            free(out.regionlist);
+			    if (out.edgelist)              free(out.edgelist);
+			    if (out.edgemarkerlist)        free(out.edgemarkerlist);
+			    if (out.normlist)              free(out.normlist);
+
             }
-
-            for (int i = in.numberofpoints; i < out.numberofpoints; i++)
-            {
-                vp.push_back(normal * normal.dot(main_points[0]) + get_by_proj(normal, out.pointlist[2*i], out.pointlist[2*i+1], p0));
-                points.push_back(vp.size()-1);
-            }
-
-            for (int i = 0; i < out.numberoftriangles; i++)
-            {
-                vt.push_back(trifacet(points[out.trianglelist[3*i]], points[out.trianglelist[3*i + 1]], points[out.trianglelist[3*i + 2]]));
-                trifacets.push_back(vt.size()-1);
-            }
-
-            free(in.pointlist);
-            free(in.segmentlist);
-
-            free(out.pointlist);
-            free(out.segmentlist);
-            free(out.edgelist);
-            free(out.trianglelist);
-            free(out.segmentmarkerlist);
-            free(out.edgemarkerlist);
-            free(out.pointmarkerlist);
-            free(out.triangleattributelist);
         }
 
         void take_triangulation( std::vector< point > & vp, std::vector< trifacet > & vt, std::vector<edge> & ve, facet & f)
         {
+
             using std::vector;
             using std::find;
 
@@ -295,7 +334,7 @@ namespace swift
                     }
                 }
             }
-            for (int i = 0; i < f.out.numberofpoints; i++)
+            for (int i = 0; i < f.points.size(); i++)
             {
                 point p = project(vp.at(f.points.at(i)), dif, normal, (main_points.at(0) + main_points.at(1) + main_points.at(2))/3 );
                 std::vector<point>::iterator it = find(vp.begin(), vp.end(), p);
@@ -310,11 +349,15 @@ namespace swift
                         points.push_back(std::distance(vp.begin(), it));
                 }
             }
-            for (int i = 0; i < f.out.numberoftriangles; i++)
+            for (int i = 0; i < f.trifacets.size(); i++)
             {
-                vt.push_back(trifacet(points[f.out.trianglelist[3*i]], points[f.out.trianglelist[3*i + 1]], points[f.out.trianglelist[3*i + 2]]));
+                vt.push_back(trifacet(points[f.full_trifacets[i].points[0]],
+                                      points[f.full_trifacets[i].points[1]],
+                                      points[f.full_trifacets[i].points[2]]));
+                //vt.push_back(trifacet(points[f.out.trianglelist[3*i]], points[f.out.trianglelist[3*i + 1]], points[f.out.trianglelist[3*i + 2]]));
                 trifacets.push_back(vt.size()-1);
             }
+
 
         }
 

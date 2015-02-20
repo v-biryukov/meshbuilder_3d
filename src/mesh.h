@@ -20,25 +20,20 @@
 #include "figures/cross_fracture.h"
 #include "figures/cube.h"
 #include "figures/rect_boundary.h"
+#include "figures/ply_model.h"
+#include "figures/layered_boundary.h"
 #include "settings.h"
 
 namespace swift
 {
 
-    struct boundary_face
-    {
-      int_t nodes[3];
-    };
 
-    struct contact_face
-    {
-      boundary_face faces[2];
-    };
 
     class mesh
     {
     private:
-        std::vector<figure> figures;
+        //std::vector<figure> figures;
+        std::vector<figure*> figures;
         tetgenio in, out;
         struct {int x, y, z;} segments;
         REAL quality, average_step;
@@ -48,7 +43,7 @@ namespace swift
         void init();
         void read_from_file(std::string path);
         void set_points();
-        void set_figure_boundaries(figure & f, int point_offset);
+        void set_figure_boundaries(figure * f, int point_offset);
         void set_boundaries();
         void set_facet(int n_of_facet, boundary_face & b, int marker = 0);
         void create_facets();
@@ -61,6 +56,7 @@ namespace swift
     public:
         mesh(){};
         mesh(char* path);
+        ~mesh();
         void build();
         void save(char* filename);
         void split_and_save();

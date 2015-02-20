@@ -61,6 +61,9 @@ namespace swift
         inline point vec (const point& A )
         { return point( y * A.z - A.y * z, -x * A.z + z * A.x, x * A.y - y * A.x ); }
 
+        inline REAL vecz (const point& A )
+        { return  x * A.y - y * A.x; }
+
         REAL projx (point n, point new_x)
         {
             return (*this - n * n.dot(*this)).dot(new_x);
@@ -89,6 +92,11 @@ namespace swift
     REAL det(point a, point b, point c)
     {
         return a.x*(b.y*c.z - c.y*b.z) + b.x*(c.y*a.z - a.y*c.z) + c.x*(a.y*b.z - b.y*a.z);
+    }
+
+    inline point operator *(double t, const point& v)
+    {
+        return (point(t * v.x, t * v.y, t * v.z));
     }
 
     std::ostream& operator<<(std::ostream& os, const point& p)

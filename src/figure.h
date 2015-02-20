@@ -20,6 +20,16 @@
 
 namespace swift
 {
+    struct boundary_face
+    {
+      int_t nodes[3];
+    };
+
+    struct contact_face
+    {
+      boundary_face faces[2];
+    };
+
     struct figure
     {
         std::vector<point> points;
@@ -42,7 +52,8 @@ namespace swift
         figure(std::vector<point> & tpoints, std::vector<edge> & tedges, std::vector<facet> & tfacets, REAL av_step_t, point hole_t);
         void make_triangulation();
         virtual void read_from_file(std::string path);
-        virtual void set_data();
+        virtual void set_data() = 0;
+        virtual void set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount) = 0;
         void set_edges_by_facets();
         point get_transformed_point(int i);
         point transform(point p);
@@ -52,10 +63,10 @@ namespace swift
 
     figure::figure(std::string path, REAL av_step_t, REAL (*constraints_t)(REAL, REAL, REAL))
     {
-        av_step = av_step_t;
-        constraints = constraints_t;
-        read_from_file(path);
-        set_data();
+        //av_step = av_step_t;
+        //constraints = constraints_t;
+        //read_from_file(path);
+        //set_data();
     }
 
     figure::figure(std::vector<point> & tpoints, std::vector<edge> & tedges, std::vector<facet> & tfacets, REAL av_step_t, point hole_t = point(0, 0, 0))
@@ -66,41 +77,34 @@ namespace swift
         facets = tfacets;
     }
 
-    void figure::set_data(){};
+    //void figure::set_data(){};
+    //void figure::set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount){};
+
 
     void figure::make_triangulation()
     {
-        /*
-        std::function<REAL(REAL x, REAL y, REAL z)> f;
-        if (constraints == nullptr)
-            f = nullptr;
-        else
-            f = [this](REAL x, REAL y, REAL z)
-            {
-                //point p = point(x, y, z);
-                point p = transform(point(x, y, z));
-                return this->constraints(p.x, p.y, p.z);
-            };
-        */
-        //for (auto & e : edges)
-        //    e.make_triangulation(points, av_step, f);
         set_edges_by_facets();
         std::vector<int> v = get_non_contact_facets();
         for ( unsigned int i = 0; i < contacts.size(); i++ )
         {
+            std::cout << "Triangulating contact facet " << i+1 << " from " << contacts.size() <<std::endl;
             std::vector<int> c = contacts.at(i);
-            facets.at(c.at(0)).make_triangulation(points, trifacets, edges, av_step, constraints);
-            facets.at(c.at(1)).make_triangulation(points, trifacets, edges, av_step, constraints);
-            //facets.at(c.at(1)).take_triangulation(points, trifacets, edges, facets.at(c.at(0)));
+            facets.at(c.at(0)).make_triangulation(points, trifacets, edges, av_step);
+            //facets.at(c.at(1)).make_triangulation(points, trifacets, edges, av_step);
+            facets.at(c.at(1)).take_triangulation(points, trifacets, edges, facets.at(c.at(0)));
         }
         for ( unsigned int i = 0; i < v.size(); i++ )
-            facets.at(v.at(i)).make_triangulation(points, trifacets, edges, av_step, constraints);
+        {
+            std::cout << "Triangulating facet " << i+1 << " from " << v.size() <<std::endl;
+            facets.at(v.at(i)).make_triangulation(points, trifacets, edges, av_step);
+        }
     }
 
     void figure::set_edges_by_facets()
     {
         for ( unsigned int i = 0; i < facets.size(); i++ )
         {
+            std::cout << "Setting facet " << i+1 << " from " << facets.size() <<std::endl;
             facet f = facets.at(i);
             for (std::vector<int>::size_type i = 0; i < f.points.size(); i++)
             {

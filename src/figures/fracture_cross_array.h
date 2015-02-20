@@ -11,8 +11,7 @@
 
 #pragma once
 #include "../figure.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
+#include "profile/Profile.h"
 
 namespace swift
 {
@@ -35,6 +34,7 @@ namespace swift
         }
         virtual void read_from_file(std::string path);
         virtual void set_data();
+        virtual void set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount);
         point sec_point(int i, int j, int z);
         /*
         void set_half_fracture(point start, point norm_xy, REAL length);
@@ -53,35 +53,33 @@ namespace swift
         using std::cout;
         using std::cin;
         using std::endl;
-        boost::property_tree::ptree pt;
+        Profile ini;
         try
         {
-            boost::property_tree::read_ini(path, pt);
+            ini = Profile(path);
         }
-        catch (boost::property_tree::ini_parser_error& error)
+        catch (...)
         {
-            cout
-                << error.message() << ": "
-                << error.filename() << ", line "
-                << error.line() << endl;
-            cout << "Error! Press any key to close." << endl;
-            std::cin.get();
-            // need to quit from the program
+            cout << "Error while reading ini file! Press any key to close." << endl;
+            cin.get();
+            std::exit(1);
         }
-        height = pt.get<REAL>("FCA.height");
-        thickness = pt.get<REAL>("FCA.thickness");
-        cross_size = pt.get<REAL>("FCA.cross_size");
-        hpart = pt.get<REAL>("FCA.hpart");
-        lpart = pt.get<REAL>("FCA.lpart");
-        std::istringstream isx( pt.get<string>("FCA.sections_x"));
+        height = ini.request<REAL>("FCA", "height", -1);
+        thickness = ini.request<REAL>("FCA", "thickness", -1);
+        cross_size = ini.request<REAL>("FCA", "cross_size", -1);
+        hpart = ini.request<REAL>("FCA", "hpart", -1);
+        lpart = ini.request<REAL>("FCA", "lpart", -1);
+
+        std::istringstream isx( ini.request<string>("FCA", "sections_x", "none"));
         sections_x = std::vector<REAL>( std::istream_iterator<REAL>(isx), std::istream_iterator<REAL>() );
-        std::istringstream isy( pt.get<string>("FCA.sections_y"));
+        std::istringstream isy( ini.request<string>("FCA", "sections_y", "none"));
         sections_y = std::vector<REAL>( std::istream_iterator<REAL>(isy), std::istream_iterator<REAL>() );
-        string s = pt.get<string>("FCA.is_contact");
-        if (s == "true" || s == "True" || s == "TRUE")
-            is_contact = true;
-        else
-            is_contact = false;
+        string s = ini.request<string>("FCA", "is_contact", "none");
+        if ( s == "none" )
+        {
+            cout << "Error while reading ini file! (fracture_cross_array)";
+        }
+        is_contact = (s == "true" || s == "True" || s == "TRUE");
     }
 
     point fracture_cross_array::sec_point(int i, int j, int z)
@@ -241,6 +239,11 @@ namespace swift
         hole.z = 0;
     }
 
+
+    void fracture_cross_array::set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount)
+    {
+
+    }
 
 /*
     int fracture_cross_array::add_point(point p)

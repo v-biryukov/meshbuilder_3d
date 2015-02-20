@@ -11,14 +11,14 @@
 
 #pragma once
 #include "../figure.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
+#include "profile/Profile.h"
 #include <cmath>
 
 namespace swift
 {
     struct cross_fracture : public figure
     {
+        bool is_contact;
         REAL height, length;
         REAL thickness;
         REAL hpart, lpart;
@@ -27,6 +27,7 @@ namespace swift
         cross_fracture(std::string path, double av_step_t,REAL (*constraints_t)(REAL, REAL, REAL) = 0);
         void read_from_file(std::string path);
         void set_data();
+        void set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount);
     };
 
     cross_fracture::cross_fracture(std::string path, double av_step_t, REAL (*constraints_t)(REAL, REAL, REAL))
@@ -35,7 +36,6 @@ namespace swift
         av_step = av_step_t;
         read_from_file(path);
         set_data();
-        //make_triangulation();
     }
 
     void cross_fracture::read_from_file(std::string path)
@@ -44,224 +44,164 @@ namespace swift
         using std::cout;
         using std::cin;
         using std::endl;
-        boost::property_tree::ptree pt;
+        Profile ini;
         try
         {
-            boost::property_tree::read_ini(path, pt);
+            ini = Profile(path);
         }
-        catch (boost::property_tree::ini_parser_error& error)
+        catch (...)
         {
-            cout
-                << error.message() << ": "
-                << error.filename() << ", line "
-                << error.line() << endl;
-            cout << "Error! Press any key to close." << endl;
-            std::cin.get();
-            // need to quit from the program
+            cout << "Error while reading ini file! Press any key to close." << endl;
+            cin.get();
+            std::exit(1);
         }
-        height = pt.get<REAL>("Cross_fracture.height");
-        length = pt.get<REAL>("Cross_fracture.length");
-        thickness = pt.get<REAL>("Cross_fracture.thickness");
-        hpart = pt.get<REAL>("Cross_fracture.hpart");
-        lpart = pt.get<REAL>("Cross_fracture.lpart");
-        angle = pt.get<REAL>("Cross_fracture.angle");
+        height = ini.request<REAL>("Cross_fracture", "height", -1);
+        length = ini.request<REAL>("Cross_fracture", "length", -1);
+        thickness = ini.request<REAL>("Cross_fracture", "thickness", -1);
+        hpart = ini.request<REAL>("Cross_fracture", "hpart", -1);
+        lpart = ini.request<REAL>("Cross_fracture", "lpart", -1);
+        angle = ini.request<REAL>("Cross_fracture", "angle", -1);
+        std::string s = ini.request<std::string>("Cross_fracture", "is_contact", "none");
+        if ( s == "none" )
+        {
+            cout << "Error while reading ini file! (Cross_fracture)";
+        }
+        is_contact =  (s == "true" || s == "True" || s == "TRUE");
     }
 
     void cross_fracture::set_data()
     {
-        point* angp1;
-        point* angp2;
-        point* lu;
-        point* th1;
-        point* th2;
-        angp1 = new point(+height/2*sin(angle/2), 0, -height/2*cos(angle/2));
-        angp2 = new point(-height/2*sin(angle/2), 0, -height/2*cos(angle/2));
-        lu = new point(0, +length/2, 0);
-        th1 = new point(thickness/2*cos(angle/2), 0, +thickness/2*sin(angle/2));
-        th2 = new point(-thickness/2*cos(angle/2), 0, thickness/2*sin(angle/2));
-        points.push_back(*angp1 + *lu);
-        points.push_back(*angp1 - *lu);
-        points.push_back(-*lu);
-        points.push_back(+*lu);
-        points.push_back(+*lu*lpart + *angp1*hpart - *th1);
-        points.push_back(-*lu*lpart + *angp1*hpart - *th1);
-        points.push_back(point(0, 0, -thickness/sin(angle)*cos(angle/2)) - *lu*lpart);
-        points.push_back(point(0, 0, -thickness/sin(angle)*cos(angle/2)) + *lu*lpart);
-        points.push_back(+*lu*lpart + *angp1*hpart + *th1);
-        points.push_back(-*lu*lpart + *angp1*hpart + *th1);
-        points.push_back(point(0, 0, -thickness/sin(angle)*cos(angle/2)) - *lu*lpart + *th1*2);
-        points.push_back(point(0, 0, -thickness/sin(angle)*cos(angle/2)) + *lu*lpart + *th1*2);
-        points.push_back(*angp2 + *lu);
-        points.push_back(*angp2 - *lu);
-        points.push_back(+*lu*lpart + *angp2*hpart - *th2);
-        points.push_back(-*lu*lpart + *angp2*hpart - *th2);
-        points.push_back(+*lu*lpart + *angp2*hpart + *th2);
-        points.push_back(-*lu*lpart + *angp2*hpart + *th2);
-        points.push_back(point(0, 0, -thickness/sin(angle)*cos(angle/2)) - *lu*lpart + *th2*2);
-        points.push_back(point(0, 0, -thickness/sin(angle)*cos(angle/2)) + *lu*lpart + *th2*2);
-        points.push_back(-*angp1 + *lu);
-        points.push_back(-*angp1 - *lu);
-        points.push_back(+*lu*lpart - *angp1*hpart + *th1);
-        points.push_back(-*lu*lpart - *angp1*hpart + *th1);
-        points.push_back(point(0, 0, thickness/sin(angle)*cos(angle/2)) - *lu*lpart);
-        points.push_back(point(0, 0, thickness/sin(angle)*cos(angle/2)) + *lu*lpart);
-        points.push_back(+*lu*lpart - *angp1*hpart - *th1);
-        points.push_back(-*lu*lpart - *angp1*hpart - *th1);
-        points.push_back(point(0, 0, thickness/sin(angle)*cos(angle/2)) - *lu*lpart - *th1*2);
-        points.push_back(point(0, 0, thickness/sin(angle)*cos(angle/2)) + *lu*lpart - *th1*2);
-        points.push_back(-*angp2 + *lu);
-        points.push_back(-*angp2 - *lu);
-        points.push_back(+*lu*lpart - *angp2*hpart + *th2);
-        points.push_back(-*lu*lpart - *angp2*hpart + *th2);
-        points.push_back(+*lu*lpart - *angp2*hpart - *th2);
-        points.push_back(-*lu*lpart - *angp2*hpart - *th2);
-        points.push_back(point(0, 0, thickness/sin(angle)*cos(angle/2)) - *lu*lpart - *th2*2);
-        points.push_back(point(0, 0, thickness/sin(angle)*cos(angle/2)) + *lu*lpart - *th2*2);
-        points.push_back(point(+thickness/sin(angle)*sin(angle/2) ,0, 0) + *lu*lpart);
-        points.push_back(point(-thickness/sin(angle)*sin(angle/2) ,0, 0) + *lu*lpart);
-        points.push_back(point(-thickness/sin(angle)*sin(angle/2) ,0, 0) - *lu*lpart);
-        points.push_back(point(+thickness/sin(angle)*sin(angle/2) ,0, 0) - *lu*lpart);
+        point angp1 = point(+length/2*sin(angle/2), length/2*cos(angle/2), 0.0);
+        point angp2 = point(-length/2*sin(angle/2), length/2*cos(angle/2), 0.0);
+        point hangp1 = angp1 * lpart;
+        point hangp2 = angp2 * lpart;
+        point zp = point(0, 0, height/2);
+        point hzp = zp * hpart;
+        point th1 = point(thickness/2*cos(angle/2), -thickness/2*sin(angle/2), 0.0);
+        point th2 = point(thickness/2*cos(angle/2), +thickness/2*sin(angle/2), 0.0);
+        point crossp = point(0.0, thickness/(2*sin(angle/2)), 0.0);
 
-        edges.push_back(edge(0, 1));
-        edges.push_back(edge(1, 2));
-        edges.push_back(edge(2, 41));
-        edges.push_back(edge(41, 38));
-        edges.push_back(edge(38, 3));
-        edges.push_back(edge(3, 0));
-        edges.push_back(edge(4, 5));
-        edges.push_back(edge(5, 6));
-        edges.push_back(edge(6, 7));
-        edges.push_back(edge(7, 4));
-        edges.push_back(edge(8, 9));
-        edges.push_back(edge(9, 10));
-        edges.push_back(edge(10, 11));
-        edges.push_back(edge(11, 8));
-        edges.push_back(edge(0, 4));
-        edges.push_back(edge(1, 5));
-        edges.push_back(edge(2, 6));
-        edges.push_back(edge(3, 7));
-        edges.push_back(edge(0, 8));
-        edges.push_back(edge(1, 9));
-        edges.push_back(edge(2, 10));
-        edges.push_back(edge(3, 11));
-        edges.push_back(edge(10, 41));
-        edges.push_back(edge(11, 38));
+        points.push_back(-angp1 - zp);
+        points.push_back(-angp2 - zp);
+        points.push_back(-zp);
+        points.push_back(angp2 - zp);
+        points.push_back(angp1 - zp);
 
-        edges.push_back(edge(12, 13));
-        edges.push_back(edge(13, 2));
-        edges.push_back(edge(2, 40));
-        edges.push_back(edge(40, 39));
-        edges.push_back(edge(39, 3));
-        edges.push_back(edge(3, 12));
-        edges.push_back(edge(14, 15));
-        edges.push_back(edge(15, 6));
-        //edges.push_back(edge(6, 7));
-        edges.push_back(edge(7, 14));
-        edges.push_back(edge(16, 17));
-        edges.push_back(edge(17, 18));
-        edges.push_back(edge(18, 19));
-        edges.push_back(edge(19, 16));
-        edges.push_back(edge(12, 14));
-        edges.push_back(edge(13, 15));
-        //edges.push_back(edge(2, 6));
-        //edges.push_back(edge(3, 7));
-        edges.push_back(edge(12, 16));
-        edges.push_back(edge(13, 17));
-        edges.push_back(edge(2, 18));
-        edges.push_back(edge(3, 19));
-        edges.push_back(edge(18, 40));
-        edges.push_back(edge(19, 39));
 
-        edges.push_back(edge(20, 21));
-        edges.push_back(edge(21, 2));
-        //edges.push_back(edge(2, 40));
-        //edges.push_back(edge(40, 39));
-        //edges.push_back(edge(39, 3));
-        edges.push_back(edge(3, 20));
-        edges.push_back(edge(22, 23));
-        edges.push_back(edge(23, 24));
-        edges.push_back(edge(24, 25));
-        edges.push_back(edge(25, 22));
-        edges.push_back(edge(26, 27));
-        edges.push_back(edge(27, 28));
-        edges.push_back(edge(28, 29));
-        edges.push_back(edge(29, 26));
-        edges.push_back(edge(20, 22));
-        edges.push_back(edge(21, 23));
-        edges.push_back(edge(2, 24));
-        edges.push_back(edge(3, 25));
-        edges.push_back(edge(20, 26));
-        edges.push_back(edge(21, 27));
-        edges.push_back(edge(2, 28));
-        edges.push_back(edge(3, 29));
-        edges.push_back(edge(28, 40));
-        edges.push_back(edge(29, 39));
+        points.push_back(-hangp1 + th1 - hzp);
+        points.push_back(-hangp2 - th2 - hzp);
+        points.push_back(-hangp1 - th1 - hzp);
+        points.push_back(-hangp2 + th2 - hzp);
 
-        edges.push_back(edge(30, 31));
-        edges.push_back(edge(31, 2));
-        //edges.push_back(edge(2, 41));
-        //edges.push_back(edge(41, 38));
-        //edges.push_back(edge(38, 3));
-        edges.push_back(edge(3, 30));
-        edges.push_back(edge(32, 33));
-        edges.push_back(edge(33, 24));
-        //edges.push_back(edge(24, 25));
-        edges.push_back(edge(25, 32));
-        edges.push_back(edge(34, 35));
-        edges.push_back(edge(35, 36));
-        edges.push_back(edge(36, 37));
-        edges.push_back(edge(37, 34));
-        edges.push_back(edge(30, 32));
-        edges.push_back(edge(31, 33));
-        //edges.push_back(edge(2, 24));
-        //edges.push_back(edge(3, 25));
-        edges.push_back(edge(30, 34));
-        edges.push_back(edge(31, 35));
-        edges.push_back(edge(2, 36));
-        edges.push_back(edge(3, 37));
-        edges.push_back(edge(36, 41));
-        edges.push_back(edge(37, 38));
+        points.push_back(-crossp - hzp);
 
-        facets.push_back(facet(0, 15, 6, 14));
-        //facets.push_back(facet(10, 11, 12, 13, edges));// !!!!!
-        facets.push_back(facet(0, 19, 10, 18));
-        facets.push_back(facet(1, 16, 7, 15));
-        /*facets.push_back(facet(1, 20, 11, 19, edges));
-        facets.push_back(facet(20, 2, 22, edges));
-        facets.push_back(facet(3, 23, 12, 22, edges));
-        facets.push_back(facet(23, 4, 21, edges));
-        facets.push_back(facet(5, 14, 9, 17, edges));
-        facets.push_back(facet(5, 18, 13, 21, edges));
+        points.push_back(-crossp - 2*th1 - hzp);
+        points.push_back(-crossp + 2*th2 - hzp);
+        points.push_back(+crossp - 2*th2 - hzp);
+        points.push_back(+crossp + 2*th1 - hzp);
 
-        facets.push_back(facet(24, 38, 30, 37, edges));
-        facets.push_back(facet(24, 40, 33, 39, edges));
-        facets.push_back(facet(25, 16, 31, 38, edges));
-        facets.push_back(facet(25, 41, 34, 40, edges));
-        facets.push_back(facet(41, 26, 43, edges));
-        facets.push_back(facet(27, 44, 35, 43, edges));
-        facets.push_back(facet(44, 28, 42, edges));
-        facets.push_back(facet(29, 37, 32, 17, edges));
-        facets.push_back(facet(29, 39, 36, 42, edges));
+        points.push_back(+crossp - hzp);
 
-        facets.push_back(facet(45, 57, 48, 37, edges));
-        facets.push_back(facet(45, 61, 52, 60, edges));
-        facets.push_back(facet(46, 58, 49, 57, edges));
-        facets.push_back(facet(46, 62, 53, 61, edges));
-        facets.push_back(facet(62, 26, 64, edges));
-        facets.push_back(facet(27, 65, 54, 64, edges));
-        facets.push_back(facet(65, 28, 63, edges));
-        facets.push_back(facet(47, 56, 51, 59, edges));
-        facets.push_back(facet(47, 60, 55, 63, edges));
+        points.push_back(hangp2 - th2 - hzp);
+        points.push_back(hangp1 + th1 - hzp);
+        points.push_back(hangp2 + th2 - hzp);
+        points.push_back(hangp1 - th1 - hzp);
 
-        facets.push_back(facet(66, 77, 69, 76, edges));
-        facets.push_back(facet(66, 79, 72, 78, edges));
-        facets.push_back(facet(67, 58, 70, 77, edges));
-        facets.push_back(facet(67, 80, 73, 79, edges));
-        facets.push_back(facet(80, 2, 82, edges));
-        facets.push_back(facet(3, 83, 74, 82, edges));
-        facets.push_back(facet(83, 4, 81, edges));
-        facets.push_back(facet(68, 76, 71, 59, edges));
-        facets.push_back(facet(68, 78, 75, 81, edges));*/
+
+
+        points.push_back(-hangp1 + th1 + hzp);
+        points.push_back(-hangp2 - th2 + hzp);
+        points.push_back(-hangp1 - th1 + hzp);
+        points.push_back(-hangp2 + th2 + hzp);
+
+        points.push_back(-crossp + hzp);
+
+        points.push_back(-crossp - 2*th1 + hzp);
+        points.push_back(-crossp + 2*th2 + hzp);
+        points.push_back(+crossp - 2*th2 + hzp);
+        points.push_back(+crossp + 2*th1 + hzp);
+
+        points.push_back(+crossp + hzp);
+
+        points.push_back(hangp2 - th2 + hzp);
+        points.push_back(hangp1 + th1 + hzp);
+        points.push_back(hangp2 + th2 + hzp);
+        points.push_back(hangp1 - th1 + hzp);
+
+
+        points.push_back(-angp1 + zp);
+        points.push_back(-angp2 + zp);
+        points.push_back(+zp);
+        points.push_back(angp2 + zp);
+        points.push_back(angp1 + zp);
+
+        facets.push_back(facet(0, 7, 21, 33));
+        facets.push_back(facet(0, 5, 19, 33));
+        facets.push_back(facet(1, 6, 20, 34));
+        facets.push_back(facet(1, 8, 22, 34));
+
+        facets.push_back(facet(0, 7, 10, 2));
+        facets.push_back(facet(0, 5, 9, 2));
+        facets.push_back(facet(1, 8, 11, 2));
+        facets.push_back(facet(1, 6, 9, 2));
+
+        facets.push_back(facet(2, 10, 12));
+        facets.push_back(facet(2, 11, 13));
+
+        facets.push_back(facet(2, 3, 15, 12));
+        facets.push_back(facet(2, 3, 17, 14));
+        facets.push_back(facet(2, 4, 16, 13));
+        facets.push_back(facet(2, 4, 18, 14));
+
+        facets.push_back(facet(3, 17, 31, 36));
+        facets.push_back(facet(3, 15, 29, 36));
+        facets.push_back(facet(4, 18, 32, 37));
+        facets.push_back(facet(4, 16, 30, 37));
+
+        facets.push_back(facet(7, 10, 24, 21));
+        facets.push_back(facet(5, 9, 23, 19));
+        facets.push_back(facet(8, 11, 25, 22));
+        facets.push_back(facet(6, 9, 23, 20));
+
+        facets.push_back(facet(10, 12, 26, 24));
+        facets.push_back(facet(11, 13, 27, 25));
+
+        facets.push_back(facet(12, 15, 29, 26));
+        facets.push_back(facet(14, 17, 31, 28));
+        facets.push_back(facet(13, 16, 30, 27));
+        facets.push_back(facet(14, 18, 32, 28));
+
+        facets.push_back(facet(21, 24, 35, 33));
+        facets.push_back(facet(19, 23, 35, 33));
+        facets.push_back(facet(20, 23, 35, 34));
+        facets.push_back(facet(22, 25, 35, 34));
+
+        facets.push_back(facet(24, 26, 35));
+        facets.push_back(facet(25, 27, 35));
+
+        facets.push_back(facet(29, 26, 35, 36));
+        facets.push_back(facet(31, 28, 35, 36));
+        facets.push_back(facet(32, 28, 35, 37));
+        facets.push_back(facet(30, 27, 35, 37));
+
+        if (is_contact)
+        {
+            std::vector<int> temp(2);
+            for (int i = 0; i < facets.size()/2; i++)
+            {
+                temp[0] = 2*i;
+                temp[1] = 2*i + 1;
+                contacts.push_back(temp);
+            }
+        }
+        hole.x = 0.0;
+        hole.y = 0.0;
+        hole.z = 0.0;
+
+    }
+
+    void cross_fracture::set_boundaries_and_contacts(const std::vector<boundary_face> & boundaries, const std::vector<contact_face> & contacts, std::vector<unsigned int> & boundaryFacesCount, std::vector<unsigned int> & contactFacesCount)
+    {
 
     }
 

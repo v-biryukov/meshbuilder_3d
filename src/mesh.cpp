@@ -9,10 +9,8 @@
 *
 *****************************************************************************/
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
-#include <boost/lexical_cast.hpp>
-//#include <boost/filesystem.hpp>
+
+#include "profile/Profile.h"
 #include <string.h>
 #include <set>
 #include <iterator>
@@ -46,6 +44,14 @@ namespace swift
         set_holes();
     }
 
+    mesh::~mesh()
+    {
+        for (int i = 0; i < figures.size(); i++)
+        {
+            delete figures[i];
+        }
+    }
+
     /*****************************************************************************
     *  Private functions
     *****************************************************************************/
@@ -60,76 +66,110 @@ namespace swift
     int mesh::calculate_number_of_points()
     {
         int n = 0;
-        for (vector<figure>::size_type i = 0; i < figures.size(); i++)
-            n += figures.at(i).points.size();
+        for (vector<figure*>::size_type i = 0; i < figures.size(); i++)
+            n += figures.at(i)->points.size();
         return n;
     }
 
     int mesh::calculate_number_of_trifacets()
     {
         int n = 0;
-        for (vector<figure>::size_type i = 0; i < figures.size(); i++)
-            n += figures.at(i).trifacets.size();
+        for (vector<figure*>::size_type i = 0; i < figures.size(); i++)
+            n += figures.at(i)->trifacets.size();
         return n;
     }
 
     int mesh::calculate_number_of_holes()
     {
         int n = 0;
-        for (vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
-            if ((*it).is_empty) n++;
+        for (vector<figure*>::iterator it = figures.begin(); it != figures.end(); it++)
+            if ((*it)->is_empty) n++;
         return n;
     }
 
     void mesh::read_from_file(string path)
     {
         using std::cin;
-        using boost::lexical_cast;
+        Profile ini;
         // reading of the config-file
-        boost::property_tree::ptree pt;
         try
         {
-            boost::property_tree::read_ini(path, pt);
+            ini = Profile(path);
         }
-        catch (boost::property_tree::ini_parser_error& error)
+        catch (...)
         {
-            cout
-                << error.message() << ": "
-                << error.filename() << ", line "
-                << error.line() << endl;
-            cout << "Error! Press any key to close." << endl;
+            cout << "Error while reading ini file! Press any key to close." << endl;
             cin.get();
             std::exit(1);
         }
+        quality   = ini.request<REAL>("Mesh", "quality", -1);
 
-        quality = pt.get<REAL>("Mesh.quality");
-        average_step = pt.get<REAL>("Mesh.average_step");
-        segments.x = pt.get<int>("Segments.number_of_segments_x");
-        segments.y = pt.get<int>("Segments.number_of_segments_y");
-        segments.z = pt.get<int>("Segments.number_of_segments_z");
-        int nof_figures = pt.get<int>("Figures.number_of_figures");
-        for(int i = 1; i <= nof_figures; i++)
+        average_step   = ini.request<REAL>("Mesh", "average_step", -1);
+        segments.x = ini.request<int>("Segments", "number_of_segments_x", -1);
+        segments.y = ini.request<int>("Segments", "number_of_segments_y", -1);
+        segments.z = ini.request<int>("Segments", "number_of_segments_z", -1);
+        int nof_figures = ini.request<int>("Figures", "number_of_figures", -1);
+        for ( int i = 1; i <= nof_figures; i++ )
         {
-            string type = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_type");
+            stringstream ss;
+            string i_str;
+            ss << i;
+            ss >> i_str;
+            string type = ini.request<string>("Figures", "figure" + i_str + "_type", "none");
 
-            if      (type == "custom")               {figures.push_back(figure(				  path, average_step, 0));}
-            else if (type == "cube") 				 {figures.push_back(cube(				  path, average_step, 0));}
-            else if (type == "fracture_cross_array") {figures.push_back(fracture_cross_array( path, average_step, 0));}
-            else if (type == "fracture") 			 {figures.push_back(fracture(			  path, average_step, 0));}
-            else if (type == "rect_boundary")  		 {figures.push_back(rect_boundary(  	  path, average_step, 0));}
-            else if (type == "cross_fracture") 		 {figures.push_back(cross_fracture(		  path, average_step, 0));}
+            //if      (type == "Custom")               {figures.push_back(figure(				  path, average_step, 0));}
 
-
-            string s = pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_is_empty");
-            if (s == "true" || s == "True" || s == "TRUE")
-                figures.back().is_empty = true;
+            if (type == "Cube")
+            {
+                cube * f = new cube( path, average_step, 0);
+                figures.push_back(f);
+            }
+            else if (type == "FCA")
+            {
+                fracture_cross_array * f = new fracture_cross_array( path, average_step, 0);
+                figures.push_back(f);
+            }
+            else if (type == "Fracture")
+            {
+                fracture * f = new fracture( path, average_step, 0);
+                figures.push_back(f);
+            }
+            else if (type == "Rect_boundary")
+            {
+                rect_boundary * f = new rect_boundary( path, average_step, 0);
+                figures.push_back(f);
+            }
+            else if (type == "Cross_fracture")
+            {
+                cross_fracture * f = new cross_fracture( path, average_step, 0);
+                figures.push_back(f);
+            }
+            else if (type == "Ply_model")
+            {
+                ply_model * f = new ply_model( path, average_step, 0);
+                figures.push_back(f);
+            }
+            else if (type == "Layered_boundary")
+            {
+                layered_boundary * f = new layered_boundary( path, average_step, 0);
+                figures.push_back(f);
+            }
             else
-                figures.back().is_empty = false;
-            stringstream ss1(pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_position"));
-            ss1 >> figures.back().pos.x >> figures.back().pos.y >> figures.back().pos.z;
-            stringstream ss2(pt.get<string>("Figures.figure" + lexical_cast<string>(i) + "_angles"));
-            ss2 >> figures.back().ang.alpha >> figures.back().ang.beta >> figures.back().ang.gamma;
-            figures.back().make_triangulation();
+            {
+                cout << "Error: there is no such type: " << type << ".";
+                std::exit(1);
+            }
+            string s = ini.request<string>("Figures", "figure" + i_str + "_is_empty", "none");
+            //std::cout << "em: " << s << std::endl;
+            figures.back()->is_empty = (s == "true" || s == "True" || s == "TRUE");
+
+            stringstream ss1(ini.request<string>("Figures", "figure" + i_str + "_position", "none"));
+            ss1 >> figures.back()->pos.x >> figures.back()->pos.y >> figures.back()->pos.z;
+
+            stringstream ss2(ini.request<string>("Figures", "figure" + i_str + "_angles", "none"));
+            ss2 >> figures.back()->ang.alpha >> figures.back()->ang.beta >> figures.back()->ang.gamma;
+            figures.back()->make_triangulation();
+
         }
     }
 
@@ -149,50 +189,50 @@ namespace swift
     void mesh::set_points()
     {
         int offset = 0;
-        for (vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
+        for (vector<figure*>::iterator it = figures.begin(); it != figures.end(); it++)
         {
-            for (vector<point>::size_type i = 0; i < (*it).points.size(); i++)
+            for (vector<point>::size_type i = 0; i < (*it)->points.size(); i++)
             {
-                point t = (*it).get_transformed_point(i);
+                point t = (*it)->get_transformed_point(i);
                 in.pointlist[3*(i + offset) + 0] = t.x;
                 in.pointlist[3*(i + offset) + 1] = t.y;
                 in.pointlist[3*(i + offset) + 2] = t.z;
             }
-            offset += (*it).points.size();
+            offset += (*it)->points.size();
         }
     }
 
-    void mesh::set_figure_boundaries(figure & f, int point_offset)
+    void mesh::set_figure_boundaries(figure * f, int point_offset)
     {
         // Creating set of numbers of the non-contact facets
-        vector<int> facet_nums = f.get_non_contact_facets();
+        vector<int> facet_nums = f->get_non_contact_facets();
         // Setting boundaries
         for ( unsigned int i = 0; i < facet_nums.size(); i++ )
         {
             int fn = facet_nums.at(i);
-            for ( unsigned int j = 0; j < f.facets.at(fn).trifacets.size(); j++ )
+            for ( unsigned int j = 0; j < f->facets.at(fn).trifacets.size(); j++ )
             {
-                int tfacn = f.facets.at(fn).trifacets.at(j);
-                boundary_face tb = {int_t(f.trifacets.at(tfacn).points[0] + point_offset),
-                                    int_t(f.trifacets.at(tfacn).points[1] + point_offset),
-                                    int_t(f.trifacets.at(tfacn).points[2] + point_offset)};
+                int tfacn = f->facets.at(fn).trifacets.at(j);
+                boundary_face tb = {int_t(f->trifacets.at(tfacn).points[0] + point_offset),
+                                    int_t(f->trifacets.at(tfacn).points[1] + point_offset),
+                                    int_t(f->trifacets.at(tfacn).points[2] + point_offset)};
                 boundaries.push_back(tb);
             }
         }
         // Setting contacts
-        for ( unsigned int i = 0; i < f.contacts.size(); i++ )
+        for ( unsigned int i = 0; i < f->contacts.size(); i++ )
         {
-            vector<int> c = f.contacts.at(i);
-            for ( unsigned int j = 0; j < f.facets.at(c.at(0)).trifacets.size(); j++ )
+            vector<int> c = f->contacts.at(i);
+            for ( unsigned int j = 0; j < f->facets.at(c.at(0)).trifacets.size(); j++ )
             {
-                int tfacn = f.facets.at(c.at(0)).trifacets.at(j);
-                int dif = *(f.facets.at(c.at(1)).trifacets.begin()) - *(f.facets.at(c.at(0)).trifacets.begin());
-                boundary_face c1 = {int_t(f.trifacets.at(tfacn).points[0] + point_offset),
-                                    int_t(f.trifacets.at(tfacn).points[1] + point_offset),
-                                    int_t(f.trifacets.at(tfacn).points[2] + point_offset)};
-                boundary_face c2 = {int_t(f.trifacets.at(tfacn + dif).points[0] + point_offset),
-                                    int_t(f.trifacets.at(tfacn + dif).points[1] + point_offset),
-                                    int_t(f.trifacets.at(tfacn + dif).points[2] + point_offset)};
+                int tfacn = f->facets.at(c.at(0)).trifacets.at(j);
+                int dif = *(f->facets.at(c.at(1)).trifacets.begin()) - *(f->facets.at(c.at(0)).trifacets.begin());
+                boundary_face c1 = {int_t(f->trifacets.at(tfacn).points[0] + point_offset),
+                                    int_t(f->trifacets.at(tfacn).points[1] + point_offset),
+                                    int_t(f->trifacets.at(tfacn).points[2] + point_offset)};
+                boundary_face c2 = {int_t(f->trifacets.at(tfacn + dif).points[0] + point_offset),
+                                    int_t(f->trifacets.at(tfacn + dif).points[1] + point_offset),
+                                    int_t(f->trifacets.at(tfacn + dif).points[2] + point_offset)};
                 contact_face temp;
                 temp.faces[0] = c1;
                 temp.faces[1] = c2;
@@ -207,7 +247,7 @@ namespace swift
         for ( unsigned int i = 0; i < figures.size(); i++ )
         {
             set_figure_boundaries(figures.at(i), offset);
-            offset += figures.at(i).points.size();
+            offset += figures.at(i)->points.size();
         }
     }
 
@@ -242,14 +282,15 @@ namespace swift
     void mesh::set_holes()
     {
         int i = 0;
-        for (vector<figure>::iterator it = figures.begin(); it != figures.end(); it++)
-            if ((*it).is_empty)
+        for (vector<figure*>::iterator it = figures.begin(); it != figures.end(); it++)
+            if ((*it)->is_empty)
             {
-                point t = (*it).transform((*it).hole);
+                point t = (*it)->transform((*it)->hole);
                 in.holelist[3*i + 0] = t.x;
                 in.holelist[3*i + 1] = t.y;
                 in.holelist[3*i + 2] = t.z;
                 i++;
+                //std::cout << "h: " << t.x << " " << t.y << " " << t.z << std::endl;
             }
     }
 
@@ -291,7 +332,7 @@ namespace swift
         REAL a = average_step*average_step*average_step/6.0;
         conv_stream.clear();
         conv_stream.str("");
-        conv_stream << a;
+        conv_stream << std::fixed << a;
         string str_a;
         conv_stream >> str_a;
 
@@ -305,8 +346,9 @@ namespace swift
         char * tempparam = new char[tetraparam.size() + 1];
         copy(tetraparam.begin(), tetraparam.end(), tempparam);
         tempparam[tetraparam.size()] = '\0';
-        //in.save_nodes((char*)"in2");
-        //in.save_poly((char*)"in2");
+        in.save_nodes((char*)"in2");
+        in.save_poly((char*)"in2");
+        in.save_faces((char*)"in2");
         // Main calculations
         if (!use_volume_constraints)
         {
@@ -402,10 +444,10 @@ namespace swift
         for( int_t i = 0; i < cellsCount; i++)
         {
             meshIds[i] = 0;
-	    cellIndices[4*i+0] = int_t(out.tetrahedronlist[4*i+0]);
-	    cellIndices[4*i+1] = int_t(out.tetrahedronlist[4*i+1]);
-	    cellIndices[4*i+2] = int_t(out.tetrahedronlist[4*i+2]);
-	    cellIndices[4*i+3] = int_t(out.tetrahedronlist[4*i+3]);
+            cellIndices[4*i+0] = int_t(out.tetrahedronlist[4*i+0]);
+            cellIndices[4*i+1] = int_t(out.tetrahedronlist[4*i+1]);
+            cellIndices[4*i+2] = int_t(out.tetrahedronlist[4*i+2]);
+            cellIndices[4*i+3] = int_t(out.tetrahedronlist[4*i+3]);
             Vector3 avg = Vector3(0, 0, 0);
             avg = avg +  vertices[cellIndices[i * 4 + 0]];
             avg = avg +  vertices[cellIndices[i * 4 + 1]];
@@ -454,38 +496,12 @@ namespace swift
         int_t * subMeshNodesCount = new int_t[subMeshesCount];
         subMeshNodesCount[0] = out.numberofpoints;
 
-        figure * main_boundary = &figures.at(0);
-        int_t n_of_slices = main_boundary->facets.size()/6 - 1;
-        // All fractures - one boundary type or/and one contact type
-
         vector<int_t> contactFacesCount;
-        //contactFacesCount.push_back(contacts.size());
-        int_t n = 0;
-        for ( int_t i = 0; i < main_boundary->contacts.size(); i++ )
-        {
-            vector<int> c = main_boundary->contacts.at(i);
-            contactFacesCount.push_back(main_boundary->facets.at(c.at(0)).trifacets.size());
-            n += main_boundary->facets.at(c.at(0)).trifacets.size();
-        }
-        if (contacts.size() > n || contacts.size() == 0)
-        {
-                contactFacesCount.push_back(contacts.size() - n);
-        }
-
         vector<int_t> boundaryFacesCount;
-        boundaryFacesCount.push_back(main_boundary->facets.at(0).trifacets.size());
-        boundaryFacesCount.push_back(main_boundary->facets.at(1).trifacets.size());
-        n = main_boundary->facets.at(0).trifacets.size() + main_boundary->facets.at(1).trifacets.size();
-        for (int i = 0; i < 4; i++)
-        {
-            int_t m = 0;
-            for ( int_t j = 0; j <= n_of_slices; j++)
-                m += main_boundary->facets.at(2 + j + (n_of_slices+1)*i).trifacets.size();
-            boundaryFacesCount.push_back(m);
-            n += m;
-        }
-        if (boundaries.size() > n)
-            boundaryFacesCount.push_back(boundaries.size() - n);
+
+
+        figures[0]->set_boundaries_and_contacts(boundaries, contacts, boundaryFacesCount, contactFacesCount);
+
 
         // ///////////////////////////////////////////////////////////////
 
