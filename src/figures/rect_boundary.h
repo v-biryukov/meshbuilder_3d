@@ -13,7 +13,7 @@
 
 #include "../figure.h"
 #include <sstream>
-#include "profile/Profile.h"
+#include "../profile/Profile.h"
 
 namespace swift
 {

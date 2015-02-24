@@ -11,7 +11,7 @@
 
 #pragma once
 #include "../figure.h"
-#include "profile/Profile.h"
+#include "../profile/Profile.h"
 
 namespace swift
 {

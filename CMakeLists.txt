@@ -54,12 +54,12 @@ set (HEADERS
     ${MY_FIGURES_DIR}/cross_fracture.h
     ${MY_FIGURES_DIR}/cube.h
     ${MY_FIGURES_DIR}/ply_model.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../profile/Profile.h
+    ${MY_SOURCE_DIR}/profile/Profile.h
 )
 
 set (SOURCES
         ${MY_SOURCE_DIR}/mesh.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../profile/src/Profile.cpp)
+        ${MY_SOURCE_DIR}/profile/src/Profile.cpp)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/tetgen1.5.0/)
 

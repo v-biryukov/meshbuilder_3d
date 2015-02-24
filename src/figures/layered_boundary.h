@@ -14,7 +14,7 @@
 #include "../figure.h"
 #include "../facet.h"
 #include <sstream>
-#include "profile/Profile.h"
+#include "../profile/Profile.h"
 #include <fstream>
 #include <limits>
 #include <map>
